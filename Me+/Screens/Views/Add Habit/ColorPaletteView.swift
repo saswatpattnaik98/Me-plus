@@ -9,15 +9,15 @@ struct ColorPaletteView: View {
                 .frame(width: 40, height: 40)
                 .clipShape(Circle())
                 .overlay(
-                    Circle() // White border circle
+                    Circle()
                         .stroke(Color.white, lineWidth: 2)
                 )
                 .overlay(
                     Group {
                         if selectedColor == Color(red: 1.0, green: 0.8, blue: 0.7) {
                             Image(systemName: "checkmark")
-                                .foregroundColor(.black) // Tick color
-                                .font(.title2) // Tick font size
+                                .foregroundColor(.black)
+                                .font(.title2)
                         }
                     }
                 )
@@ -26,7 +26,7 @@ struct ColorPaletteView: View {
                 }
             
             // Light Pink
-            Color(red: 1.0, green: 0.8, blue: 0.9) // Light pink
+            Color(red: 1.0, green: 0.8, blue: 0.9)
                 .frame(width: 40, height: 40)
                 .clipShape(Circle())
                 .overlay(
@@ -47,7 +47,7 @@ struct ColorPaletteView: View {
                 }
             
             // Soft Lavender
-            Color(red: 0.8, green: 0.7, blue: 1.0) // Soft lavender
+            Color(red: 0.8, green: 0.7, blue: 1.0)
                 .frame(width: 40, height: 40)
                 .clipShape(Circle())
                 .overlay(
@@ -68,7 +68,7 @@ struct ColorPaletteView: View {
                 }
             
             // Soft Coral
-            Color(red: 1.0, green: 0.6, blue: 0.6) // Soft coral
+            Color(red: 1.0, green: 0.6, blue: 0.6) 
                 .frame(width: 40, height: 40)
                 .clipShape(Circle())
                 .overlay(

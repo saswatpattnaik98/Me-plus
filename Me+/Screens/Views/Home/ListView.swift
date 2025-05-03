@@ -12,6 +12,7 @@ struct ListView: View {
     @Environment(\.modelContext) var modelContext
     
     @State private var notificationManager = LocalNotificationManager()
+    @State private var alarmManager = AlarmManager()
     
     @Binding var selectedDate: Date
     @Binding var showBronzeStar: Bool
@@ -78,7 +79,7 @@ struct ListView: View {
                                         if !activity.subtasks.isEmpty{
                                             Text("\(activity.subtasks.count) subtasks ")
                                                 .font(.system(size: 12))
-                                                
+                                            
                                         }else{
                                             Text("\(activity.date.displayTime)")
                                                 .font(.system(size: 12))
@@ -128,13 +129,11 @@ struct ListView: View {
                             }
                         }// HStack of the list instance
                         // Modifiers to perform on the overall instance at once
-                        
                         .onDelete(perform: deleteActivity)
                         
                     }// Section of the lists
                     
                 }// List
-                
                 .scrollIndicators(.hidden)
                 .scrollContentBackground(.hidden)
                 .padding(.top, -20)
@@ -170,18 +169,31 @@ struct ListView: View {
     
     private func toggleCompleted(for activity: Activity) {
         activity.isCompleted = true
+        notificationManager.cancelNotification(for: activity.id)
+        alarmManager.stopAlarm(for: activity.id)
         try? modelContext.save()
         // After toggling, check if any activities are completed
         DispatchQueue.main.async {
-               showBronzeStar = activities.contains { $0.isCompleted }
+            showBronzeStar = activities.contains { $0.isCompleted }
         }
     }
     
     private func deleteActivity(at offsets: IndexSet) {
         for index in offsets {
-            let activity = activities[index]
-            notificationManager.cancelAllNotifications()
+            let activity = filteredActivities[index]
+            // Cancel alarm for this activity
+                AlarmManager.shared.stopAlarm(for: activity.id)
+            
+            // Cancel notifications for this specific activity
+            notificationManager.cancelNotification(for: activity.id)
+        
             modelContext.delete(activity)
+        }
+        do {
+            try modelContext.save()
+            print("Deleted and saved context") // Debugging statement
+        } catch {
+            print("Failed to save after deletion: \(error)")
         }
     }
 }
@@ -189,7 +201,7 @@ struct ListView: View {
 #Preview {
     let modelContainer = try! ModelContainer(for: Activity.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     let context = modelContainer.mainContext
-    context.insert(Activity(name: "Preview Task", date: .now, duration: 30, isCompleted: false))
+    context.insert(Activity(name: "_____________", date: Date(), duration: 30, isCompleted: false))
     
     return ListView(selectedDate:.constant(Date()),showBronzeStar: .constant(true))
         .modelContainer(modelContainer)

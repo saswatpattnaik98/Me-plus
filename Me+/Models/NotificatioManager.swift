@@ -6,29 +6,41 @@ class LocalNotificationManager {
             print("Notification permission granted: \(granted)")
         }
     }
-    
-    func scheduleNotification(title: String, body: String, dateComponents: DateComponents, repeats: Bool = false) {
+
+    // Use the activity ID as identifier
+    func scheduleNotification(
+        id: UUID,
+        title: String,
+        body: String,
+        dateComponents: DateComponents,
+        repeats: Bool = false
+    ) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
-        
+
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: repeats)
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-        
+        let request = UNNotificationRequest(identifier: id.uuidString, content: content, trigger: trigger)
+
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 print("Notification error: \(error.localizedDescription)")
             } else {
-                print("Notification scheduled with components: \(dateComponents)")
+                print("Notification scheduled with ID: \(id)")
             }
         }
     }
-    
+
+    // Cancel only the notification for this activity
+    func cancelNotification(for id: UUID) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id.uuidString])
+        print("Cancelled notification for ID: \(id)")
+    }
+
+    // Use only for global resets/debug
     func cancelAllNotifications() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         print("All notifications cancelled")
     }
 }
-
-

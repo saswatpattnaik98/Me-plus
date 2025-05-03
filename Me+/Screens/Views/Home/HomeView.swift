@@ -56,12 +56,11 @@ private var weeks: [[Date]] {
                 ZStack(alignment: .top) {
                     Color.white.opacity(0.2)
                         .ignoresSafeArea(edges: .top)
-                        .frame(height: 185)
+                        .frame(height: 195)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(Color.indigo.opacity(0.2))
                         )
-                    
                     VStack(spacing: 0) {
                         HStack {
                             Text(dateLabel(for: selectedDate))
@@ -77,6 +76,7 @@ private var weeks: [[Date]] {
                                         .foregroundStyle(.orange)
                                         .font(.title2)
                                     Text("\(streakCount)")
+                                        .foregroundStyle(.black)
                                         .font(.headline)
                                         .fontWeight(.semibold)
                                 }
@@ -98,12 +98,12 @@ private var weeks: [[Date]] {
                                     .foregroundStyle(.black)
                             }
                         }
-                        .padding(.top, 55) // ensures space below notch
+                        .padding(.top, 52) // ensures space below notch
                         .padding(.horizontal)// ensures that buttons wont feels away from the alignment
                         
         TabView(selection: $currentWeekStart) {
                 ForEach(weeks, id: \.[0]) { week in
-                    HStack(spacing: 0) {
+                    HStack(spacing: 5) {
                             ForEach(week, id: \.self) { date in
                                         let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
                                         
@@ -157,7 +157,8 @@ private var weeks: [[Date]] {
                                                     Color.clear
                                                 }
                                             }
-                                        )                    .onTapGesture {
+                                        )
+                                        .onTapGesture {
                                             selectedDate = date
                                         }
                                     }
@@ -169,25 +170,51 @@ private var weeks: [[Date]] {
                         .frame(height: 90)
                         
                         // Today Text or date text on upperright Corner of Homeview
-                        HStack {
+                        HStack(spacing: 0){
                             Spacer()
-                            if !Calendar.current.isDateInToday(selectedDate) {
-                                Button {
-                                    let today = Calendar.current.startOfDay(for: Date())
-                                    selectedDate = today
-                                    currentWeekStart = today.startOfWeek()
-                                } label: {
+                          //  Spacer()
+                            VStack(spacing: 2) {
+                                Capsule()
+                                    .fill(Color.gray.opacity(0.6))
+                                    .frame(width: 24, height: 3)
+                                Capsule()
+                                    .fill(Color.gray.opacity(0.6))
+                                    .frame(width: 24, height: 3)
+                            }
+                            .padding(8)
+                            .background(Color.clear)
+                            .offset(x:25)
+                            Spacer()
+                            
+                            // This preserves layout even when the button is hidden
+                            Group {
+                                if !Calendar.current.isDateInToday(selectedDate) {
+                                    Button {
+                                        let today = Calendar.current.startOfDay(for: Date())
+                                        selectedDate = today
+                                        currentWeekStart = today.startOfWeek()
+                                    } label: {
+                                        Text("Today")
+                                            .foregroundStyle(.black)
+                                            .font(.footnote)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 3)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 15)
+                                                    .stroke(Color.black)
+                                            )
+                                    }
+                                } else {
+                                    // Empty view with same size as the button
                                     Text("Today")
-                                        .foregroundStyle(.black)
-                                        .labelStyle(.titleAndIcon)
                                         .font(.footnote)
                                         .padding(.horizontal, 12)
-                                       // .padding(.vertical, 3)
-                                        .background(RoundedRectangle(cornerRadius: 15).stroke(Color.black))
+                                        .padding(.vertical, 3)
+                                        .opacity(0)
                                 }
-                                .padding(.top, 2)
                             }
                         }
+
                     }
                     .gesture(
                         DragGesture()
@@ -259,6 +286,13 @@ private var weeks: [[Date]] {
                 .zIndex(2)
             }// if conditon showCalendar
         }// ZStack
+        
+        .sheet(isPresented: $openManageTasks){
+            ManageTasks()
+        }
+        .sheet(isPresented: $streakView){
+            StreakExpandView(streakCount: $streakCount)
+        }
     }// body
     
 private func dateLabel(for date: Date) -> String {

@@ -6,7 +6,6 @@ struct EditTimeView: View {
     @Binding var showTimePicker: Bool
     @Environment(\.dismiss) var dismiss
     @Binding var periodTime: Bool
-    
     let timeType = ["Point Time", "Time Period"]
     @State private var timeSelection = "Point Time"
     var body: some View {
@@ -55,9 +54,6 @@ struct EditTimeView: View {
             
             }//vstack
             
-            
-            
-            
             Spacer()
                 .toolbar{
                     ToolbarItem(placement: .topBarLeading){
@@ -89,7 +85,6 @@ struct EditTimeView: View {
         return calendar.date(from: components)!
     }
 }
-
 #Preview {
     EditTimeView(time1: .constant(Date()), time2: .constant(Date()), showTimePicker: .constant(true) , periodTime: .constant(false))
 }

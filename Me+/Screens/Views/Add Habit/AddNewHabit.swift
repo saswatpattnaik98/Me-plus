@@ -27,16 +27,16 @@ struct AddNewHabit: View {
                         if let uiImage = UIImage(named: addHabitViewModel.habitName) {
                             Image(uiImage: uiImage)
                                 .resizable()
-                                .frame(width: 100, height: 100)
+                                .frame(width: 80, height: 80)
                                 .scaledToFit()
                         } else {
                             Image("default")
                                 .resizable()
-                                .frame(width: 100, height: 100)
+                                .frame(width: 80, height: 80)
                                 .scaledToFit()
                         }
                         TextField("New Task", text: $addHabitViewModel.habitName)
-                            .font(.title)
+                            .font(.title3)
                             .fontWeight(.bold)
                             .multilineTextAlignment(.center)
                             .textInputAutocapitalization(.none)
@@ -83,30 +83,51 @@ struct AddNewHabit: View {
             }
             .toolbar {
                 Button {
-                    let newactivity = Activity(name: addHabitViewModel.habitName, date: addHabitViewModel.date, duration: addHabitViewModel.tempduration, isCompleted: false, subtasks: addHabitViewModel.subtasks)
-                    modelContext.insert(newactivity)
+                    let newActivity = Activity(
+                        name: addHabitViewModel.habitName,
+                        date: addHabitViewModel.date,
+                        duration: addHabitViewModel.tempduration,
+                        isCompleted: false,
+                        subtasks: addHabitViewModel.subtasks
+                    )
                     
-                    if let combinedDate = addHabitViewModel.combineDateAndTime(date: addHabitViewModel.date, time: addHabitViewModel.time) {
-                        if addHabitViewModel.reminderType == "Alarm" {
-                            addHabitViewModel.scheduleAlarm(for: combinedDate)
-                        } else if addHabitViewModel.reminderType == "Notification" {
-                            addHabitViewModel.scheduleNotification(for: combinedDate)
+                    modelContext.insert(newActivity)
+                    
+                    if addHabitViewModel.selectedRepeat != .None {
+                        addHabitViewModel.createRepeatedActivities(baseActivity: newActivity, context: modelContext)
+                    }
+
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        print("Failed to save activity: \(error)")
+                    }
+
+                    // Schedule alarm or notification
+                    if addHabitViewModel.showTimePicker {
+                        if let combinedDate = addHabitViewModel.combineDateAndTime(date: addHabitViewModel.date, time: addHabitViewModel.time) {
+                            if addHabitViewModel.reminderType == "Alarm" {
+                                // ✅ Use correct signature passing ID
+                                addHabitViewModel.scheduleAlarm(for: newActivity.id, baseDate: combinedDate)
+                            } else if addHabitViewModel.reminderType == "Notification" {
+                                addHabitViewModel.scheduleNotification(for: combinedDate, activityId: newActivity.id)
+                            }
                         }
                     }
+
                     dismiss()
                     dismiss()
-                } label: {
-                    Text("Create")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.black)
+                }label: {
+        Text("Create")
+            .font(.headline)
+            .fontWeight(.semibold)
+            .foregroundStyle(.black)
                 }
             }
         }
     }
-    
     var formInputs: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 5) {
             NavigationLink(destination: EditDateAddedView(date: $addHabitViewModel.date)) {
                 HStack(spacing: 12) {
                     Image(systemName: "calendar").fontWeight(.bold)
@@ -116,19 +137,23 @@ struct AddNewHabit: View {
                     Image(systemName:"chevron.right")
                 }
                 .foregroundStyle(Color.black)
-                .padding(15)
+                
             }
-            
+            .padding(15)
             Divider().frame(width: 300, height: 0.5).background(Color.gray.opacity(0.5))
             
             HStack(spacing: 12) {
                 Image(systemName: "clock")
                 Text("Time")
                 Spacer()
-                if addHabitViewModel.periodTime {
-                    Text("\(addHabitViewModel.time.formatted(date: .omitted, time: .shortened)) - \(addHabitViewModel.endTime.formatted(date: .omitted, time: .shortened))")
-                } else {
-                    Text("\(addHabitViewModel.time.formatted(date: .omitted, time: .shortened))")
+                if addHabitViewModel.showTimePicker{
+                    if addHabitViewModel.periodTime {
+                        Text("\(addHabitViewModel.time.formatted(date: .omitted, time: .shortened)) - \(addHabitViewModel.endTime.formatted(date: .omitted, time: .shortened))")
+                    } else {
+                        Text("\(addHabitViewModel.time.formatted(date: .omitted, time: .shortened))")
+                    }
+                }else{
+                    Text("Anytime")
                 }
                 Button{
                     withAnimation{
@@ -149,7 +174,7 @@ struct AddNewHabit: View {
                 Spacer()
                 Text("\(addHabitViewModel.selectedRepeat)")
                 Button{
-                   // $addHabitViewModel.showRepeatPicker.toggle
+                    addHabitViewModel.showrepeatPicker.toggle()
                     // Make some changes here it is not functioning
                 }label: {
                     Image(systemName: "chevron.right")
@@ -159,6 +184,7 @@ struct AddNewHabit: View {
             .padding(15)
             
             Divider().frame(width: 300, height: 0.5).background(Color.gray.opacity(0.5))
+            
             HStack(spacing: 12) {
                 Image(systemName: "calendar.day.timeline.left").fontWeight(.bold)
                 Text("Reminder")
@@ -166,10 +192,11 @@ struct AddNewHabit: View {
                 Picker("", selection: $addHabitViewModel.reminderType) {
                     ForEach(addHabitViewModel.ReminderType, id: \.self) {
                         Text($0).tag($0)
-                    }
+                    }.foregroundStyle(.black)
                 }
             }
-            .padding(15)
+            .padding(10)
+            
             Divider().frame(width: 300, height: 0.5).background(Color.gray.opacity(0.5))
             
             HStack(spacing: 12) {
@@ -182,18 +209,18 @@ struct AddNewHabit: View {
                     }
                 }
             }
-            .padding(15)
+            .padding(10)
         }
-        .frame(width: 360, height:  340)
+        .frame(width: 360, height:  310)
         .background(RoundedRectangle(cornerRadius: 15).fill(Color.white.opacity(0.7)))
         .sheet(isPresented: $addHabitViewModel.showEditTime){
             EditTimeView(time1: $addHabitViewModel.time, time2: $addHabitViewModel.endTime, showTimePicker: $addHabitViewModel.showTimePicker, periodTime : $addHabitViewModel.periodTime)
         }
-//        .sheet(isPresented: $addHabitViewModel.showRepeatPicker){
-//            RepeatBottomSelect(selectedRepeat: $addHabitViewModel.selectedRepeat, endDate: $addHabitViewModel.date)
-//            .presentationDetents([.fraction(0.5), .medium])
-//            .presentationDragIndicator(.hidden)
-//        }
+       .sheet(isPresented: $addHabitViewModel.showrepeatPicker){
+            RepeatBottomSelect(selectedRepeat: $addHabitViewModel.selectedRepeat, endDate: $addHabitViewModel.date)
+            .presentationDetents([.fraction(0.5), .medium])
+            .presentationDragIndicator(.hidden)
+        }
     }
 }
 
