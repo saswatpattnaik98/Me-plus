@@ -5,7 +5,7 @@ struct ManageTasks: View {
     @Environment(\.modelContext) var modelContext
     @Query(sort: \Activity.date) var activities: [Activity]  // Sorted by date
     @State private var searchtext: String = ""
-    @State private var sortOption: SortOption = .all
+    @State private var sortOption: SortOption = .today
 
     // Enum to represent different sorting options
     enum SortOption: String, CaseIterable, Identifiable {
@@ -39,12 +39,14 @@ struct ManageTasks: View {
     var body: some View {
         NavigationStack {
             VStack{
-                HStack {
+                HStack(spacing: 12) {
                     Spacer()
                     Image(systemName: "magnifyingglass")
                     TextField("Search for task name", text: $searchtext)
                         .padding(8)
                 }
+                //.padding(8)
+                .frame(width: 318, height: 50)
                 .background(Color.blue.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 15))
             }
@@ -54,7 +56,7 @@ struct ManageTasks: View {
                     HStack {
                         Image("\(activity.name)") // Replace with an appropriate image if needed
                             .resizable()
-                            .frame(width: 30, height: 30)
+                            .frame(width: 25, height: 30)
                         VStack(alignment: .leading) {
                             if activity.isCompleted {
                                 Text("\(activity.date.displayDate)")
@@ -64,7 +66,7 @@ struct ManageTasks: View {
                                     .font(.system(size: 10))
                             }
                             Text("\(activity.name)")
-                                .font(.system(size: 15))
+                                .font(.system(size: 13))
                                 .fontWeight(.semibold)
                         }
                     }
@@ -79,6 +81,7 @@ struct ManageTasks: View {
             .scrollContentBackground(.hidden)
             .scrollIndicators(.hidden)
             .navigationTitle("Manage Tasks")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {

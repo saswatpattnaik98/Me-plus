@@ -2,24 +2,26 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
-    // For rescheduling of task
-    @Environment(\.modelContext) private var context
-    @AppStorage("lastStreakUpdateDate") private var lastStreakUpdateDate: String = ""
-    @AppStorage("streakCount") private var storedStreakCount: Int = 0
-    @AppStorage("lastCheckedDate") private var lastCheckedDate: String = ""
+    // MARK: - Properties
+        @Environment(\.modelContext) private var context
+        
+        // Streak related properties
+        @AppStorage("streakCount") private var storedStreakCount: Int = 0
+        @AppStorage("lastStreakUpdateDate") private var lastStreakUpdateDate: String = ""
+        @AppStorage("lastCheckedDate") private var lastCheckedDate: String = ""
+        @State private var streakCount: Int = 0
 
-
-    @State private var streakCount = 0
-
-    @State private var showGraphicalCalendar = false
-    @State private var dragOffset: CGFloat = 0
-    @State private var currentWeekStart: Date = Calendar.current.startOfDay(for: Date()).startOfWeek()
-    @State private var openManageTasks = false
-  //  @State private var showEditHabit = false
-    @State private var selectedDate: Date = Date()
-    @State private var showBronzeStar: Bool = false
-    @State private var streakView = false
-    @Query var activities : [Activity]
+        // UI related properties
+        @State private var showGraphicalCalendar = false
+        @State private var dragOffset: CGFloat = 0
+        @State private var currentWeekStart: Date = Calendar.current.startOfDay(for: Date()).startOfWeek()
+        @State private var openManageTasks = false
+        @State private var selectedDate: Date = Date()
+        @State private var showBronzeStar: Bool = false
+        @State private var streakView = false
+        
+        @Query var activities: [Activity]
+        
     
     
 func hasCompletedActivity(on date: Date) -> Bool {
@@ -231,13 +233,13 @@ private var weeks: [[Date]] {
                 // List of Habits
                 
                 ListView(selectedDate: $selectedDate, showBronzeStar: $showBronzeStar, onHabitCompleted: {
-                    checkAndUpdateStreakOnFirstCompletion()
+                  onTaskCompleted()
                 })
             }
             // Modifier to update the schdeduled task
             .onAppear {
                 checkAndCarryOverTasksIfNeeded(context: context)
-                checkStreakResetIfNeeded()
+                initializeStreakState()
             }
             
             
@@ -349,39 +351,71 @@ private func checkAndCarryOverTasksIfNeeded(context: ModelContext) {
             lastCheckedDate = todayString
         }
     }
+    func initializeStreakState() {
+           // Load stored streak and update the UI
+           streakCount = storedStreakCount
+           
+           // Check if we need to reset the streak (no activity completed yesterday)
+           checkStreakResetIfNeeded()
+       }
     func checkStreakResetIfNeeded() {
+           let calendar = Calendar.current
+           let today = calendar.startOfDay(for: Date())
+           let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
+           
+           // Only run this check once per day
+           if todayString != lastCheckedDate {
+               // Get yesterday's date
+               let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+               
+               // Check if any activity was completed yesterday
+               let completedYesterday = activities.contains { activity in
+                   calendar.isDate(activity.date, inSameDayAs: yesterday) && activity.isCompleted
+               }
+               
+               // If streak is > 0 and no activity was completed yesterday, reset streak
+               if storedStreakCount > 0 && !completedYesterday {
+                   print("Streak reset: No activity completed yesterday")
+                   storedStreakCount = 0
+                   streakCount = 0
+               }
+               
+               // Update last checked date
+               lastCheckedDate = todayString
+           }
+       }
+    // Call this when a task is marked as completed
+    func onTaskCompleted() {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
         
-        if todayString != lastCheckedDate{
-            let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
-            
-            let completedYesterday = activities.contains { activity in
-                calendar.isDate(activity.date, inSameDayAs: yesterday) && activity.isCompleted
-            }
-            
-            if !completedYesterday {
-                storedStreakCount = 0
-            }
-            
-            lastCheckedDate = todayString
-            streakCount = storedStreakCount
+        // Count completed tasks for today
+        let completedTasksToday = activities.filter { activity in
+            calendar.isDate(activity.date, inSameDayAs: today) && activity.isCompleted
+        }.count
+        
+        // If this is the first completed task of the day, update streak
+        if completedTasksToday == 1 {
+            checkAndUpdateStreakOnFirstCompletion()
         }
     }
+    
+    // Update streak when first activity is completed in a day
     func checkAndUpdateStreakOnFirstCompletion() {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
 
-        // If we haven't updated streak for today yet
+        // Check if we already updated streak for today
         if todayString != lastStreakUpdateDate {
+            // Increment streak and update last update date
             storedStreakCount += 1
             lastStreakUpdateDate = todayString
+            streakCount = storedStreakCount
+            print("Streak incremented to: \(streakCount)")
         }
-
-        streakCount = storedStreakCount
     }
+    
 
 }
 extension Date {

@@ -7,11 +7,11 @@ struct OutlinedView: View {
         ZStack {
             // Outline layer
             Text("\(value)")
-                .font(.system(size: 48, weight: .black))
+                .font(.system(size: 48, weight: .bold))
                 .foregroundColor(.clear)
                 .overlay(
                     Text("\(value)")
-                        .font(.system(size: 48, weight: .bold))
+                        .font(.system(size: 48, weight: .semibold))
                         .foregroundColor(.orange)
                         .opacity(2)
                         .background(
@@ -38,7 +38,7 @@ struct StrokeText: View {
                 Text(text).offset(x: width, y: 0)
                 Text(text).offset(x: -width, y: 0)
                 Text(text).offset(x: 0, y: width)
-                Text(text).offset(x: 0, y: -width)
+                Text(text).offset(x: -2, y: -width)
             }
             .foregroundColor(color)
             

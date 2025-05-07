@@ -110,7 +110,6 @@ struct PreloadedTaskView: View {
                 isActive: $goToAddNewHabit,
                 label: { EmptyView() }
             )
-
             if !newtask.isEmpty {
                 Button {
                     addHabitViewModel.habitName = newtask

@@ -230,7 +230,7 @@ class AddhabitViewModel:ObservableObject{
         subtaskName = "" // Clear the field
     }
     // Repat Tasks
-    func createRepeatedActivities(baseActivity: Activity, context: ModelContext) {
+    func createRepeatedActivities(baseActivity: Activity, baseID: UUID ,context: ModelContext) {
         let repeatType = selectedRepeat
         let calendar = Calendar.current
         var nextDate = baseActivity.date
@@ -244,14 +244,14 @@ class AddhabitViewModel:ObservableObject{
 
                 switch repeatType {
                 case .daily:
-                    insertActivityIfNeeded(on: nextDate, base: baseActivity, context: context)
+                    insertActivityIfNeeded(on: nextDate, base: baseActivity,baseID: baseID ,context: context)
 
                 case .monthly:
-                    insertActivityIfNeeded(on: nextDate, base: baseActivity, context: context)
+                    insertActivityIfNeeded(on: nextDate, base: baseActivity, baseID: baseID ,context: context)
 
                 case .weekends:
                     if weekday == 1 || weekday == 7 { // Sunday or Saturday
-                        insertActivityIfNeeded(on: nextDate, base: baseActivity, context: context)
+                        insertActivityIfNeeded(on: nextDate, base: baseActivity, baseID: baseID ,context: context)
                     }
 
                 default:
@@ -271,8 +271,10 @@ class AddhabitViewModel:ObservableObject{
     }
 
     // Helper to insert activity
-    private func insertActivityIfNeeded(on date: Date, base: Activity, context: ModelContext) {
+    private func insertActivityIfNeeded(on date: Date, base: Activity,baseID: UUID ,context: ModelContext) {
         let newActivity = Activity(
+            id: UUID(),
+            baseID: baseID,
             name: base.name,
             date: date,
             duration: base.duration,

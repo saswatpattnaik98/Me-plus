@@ -19,11 +19,12 @@ struct ListView: View {
     var onHabitCompleted: (() -> Void)? = nil
     
     @Query var activities: [Activity]
+    
     @State private var passtheIDofHabit: UUID? = nil
     @State private var selectedHabitName : String = ""
-    
-    // for animation when click the task
     @State private var pressedTaskID: UUID? = nil
+    let today = Calendar.current.startOfDay(for: Date())
+
     
     var filteredActivities: [Activity] {
         activities.filter {
@@ -100,6 +101,8 @@ struct ListView: View {
                                     }
                                 }
                                 Spacer()
+                                let isToday = Calendar.current.isDate(activity.date, inSameDayAs: Date())
+
                                 Button(action: {
                                     toggleCompleted(for: activity)
                                     onHabitCompleted?()
@@ -107,7 +110,10 @@ struct ListView: View {
                                     Image(systemName: activity.isCompleted ? "checkmark.seal.fill" : "circle")
                                         .foregroundColor(activity.isCompleted ? .green : .gray)
                                         .font(.title)
-                                }.buttonStyle(.borderless)
+                                }
+                                .buttonStyle(.borderless)
+                                .disabled(!isToday)
+
                                 
                             }
                             .padding(22)
@@ -127,10 +133,20 @@ struct ListView: View {
                                     pressedTaskID = nil
                                 }
                             }
-                        }// HStack of the list instance
-                        // Modifiers to perform on the overall instance at once
-                        .onDelete(perform: deleteActivity)
-                        
+                            .swipeActions(edge: .trailing) {
+                                    Button {
+                                        deleteAllFutureTasks(for: activity.baseID, from: activity.date)
+                                    } label: {
+                                        Label("Delete All", systemImage: "trash.slash")
+                                    }
+                                    .tint(.orange)
+                                Button{
+                                  deleteSingleActivity(activity: activity)
+                                }label:{
+                                    Label("Delete",systemImage:"trash")
+                                }.tint(.red)
+                            }
+                        }// HStack
                     }// Section of the lists
                     
                 }// List
@@ -177,18 +193,10 @@ struct ListView: View {
             showBronzeStar = activities.contains { $0.isCompleted }
         }
     }
-    
-    private func deleteActivity(at offsets: IndexSet) {
-        for index in offsets {
-            let activity = filteredActivities[index]
-            // Cancel alarm for this activity
-                AlarmManager.shared.stopAlarm(for: activity.id)
-            
-            // Cancel notifications for this specific activity
-            notificationManager.cancelNotification(for: activity.id)
-        
-            modelContext.delete(activity)
-        }
+    private func deleteSingleActivity(activity: Activity) {
+        AlarmManager.shared.stopAlarm(for: activity.id)
+        notificationManager.cancelNotification(for: activity.id)
+        modelContext.delete(activity)
         do {
             try modelContext.save()
             print("Deleted and saved context") // Debugging statement
@@ -196,12 +204,47 @@ struct ListView: View {
             print("Failed to save after deletion: \(error)")
         }
     }
+    func deleteAllFutureTasks(for baseID: UUID?, from date: Date) {
+        guard let baseID = baseID else {
+               print("Cannot delete tasks with nil baseID")
+               return
+           }
+        guard !activities.isEmpty else {
+            print("No activities to delete.")
+            return
+        }
+        let futureTasks = activities.filter {
+            $0.baseID == baseID && $0.date >= date
+        }
+        
+        // If no tasks are found, return early
+        guard !futureTasks.isEmpty else {
+            print("No future tasks found for deletion.")
+            return
+        }
+        
+        for task in futureTasks {
+            alarmManager.stopAlarm(for: task.id)
+            notificationManager.cancelNotification(for: task.id)
+            modelContext.delete(task)
+        }
+        
+        // Save changes to the context
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving after deletion: \(error)")
+        }
+    }
+
+
+
 }
 
 #Preview {
     let modelContainer = try! ModelContainer(for: Activity.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     let context = modelContainer.mainContext
-    context.insert(Activity(name: "_____________", date: Date(), duration: 30, isCompleted: false))
+    context.insert(Activity(name: "_____________", date: Date(), duration: 0, isCompleted: false))
     
     return ListView(selectedDate:.constant(Date()),showBronzeStar: .constant(true))
         .modelContainer(modelContainer)

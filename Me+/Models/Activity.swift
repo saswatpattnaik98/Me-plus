@@ -4,6 +4,7 @@ import SwiftData
 @Model
 class Activity: ObservableObject {
     var id: UUID
+    var baseID: UUID?
     var name: String
     var date: Date
     var duration: Int // This is the streak we are maintaining
@@ -13,8 +14,9 @@ class Activity: ObservableObject {
     @Relationship var subtasks: [Subtask] // Corrected: `subtasks` instead of `subtask`
 
     // Updated initializer to accept subtasks
-    init(id: UUID = UUID(), name: String, date: Date, duration: Int, colorName: String = Activity.randomColorName(), isCompleted: Bool = false, isRescheduled: Bool = false, subtasks: [Subtask] = []) {
+    init(id: UUID = UUID(), baseID: UUID? = nil,name: String, date: Date, duration: Int, colorName: String = Activity.randomColorName(), isCompleted: Bool = false, isRescheduled: Bool = false, subtasks: [Subtask] = []) {
         self.id = id
+        self.baseID = baseID
         self.name = name
         self.date = date
         self.duration = duration

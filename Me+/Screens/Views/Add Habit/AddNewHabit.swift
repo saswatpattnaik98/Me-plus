@@ -82,8 +82,12 @@ struct AddNewHabit: View {
                 AddhabitViewModel.notificationManager.requestPermission() // Ask for permission on first open
             }
             .toolbar {
+                // ADD NEW TASK
                 Button {
+                    let baseID = UUID()
                     let newActivity = Activity(
+                        id: UUID(),
+                        baseID: baseID,
                         name: addHabitViewModel.habitName,
                         date: addHabitViewModel.date,
                         duration: addHabitViewModel.tempduration,
@@ -94,7 +98,7 @@ struct AddNewHabit: View {
                     modelContext.insert(newActivity)
                     
                     if addHabitViewModel.selectedRepeat != .None {
-                        addHabitViewModel.createRepeatedActivities(baseActivity: newActivity, context: modelContext)
+                        addHabitViewModel.createRepeatedActivities(baseActivity: newActivity,baseID: baseID,context: modelContext)
                     }
 
                     do {
@@ -107,7 +111,7 @@ struct AddNewHabit: View {
                     if addHabitViewModel.showTimePicker {
                         if let combinedDate = addHabitViewModel.combineDateAndTime(date: addHabitViewModel.date, time: addHabitViewModel.time) {
                             if addHabitViewModel.reminderType == "Alarm" {
-                                // ✅ Use correct signature passing ID
+                                //  Use correct signature passing ID
                                 addHabitViewModel.scheduleAlarm(for: newActivity.id, baseDate: combinedDate)
                             } else if addHabitViewModel.reminderType == "Notification" {
                                 addHabitViewModel.scheduleNotification(for: combinedDate, activityId: newActivity.id)

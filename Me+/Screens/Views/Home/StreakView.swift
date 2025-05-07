@@ -21,10 +21,6 @@ struct StreakExpandView: View {
                             .resizable()
                             .frame(width: 200,height: 200)
                             .scaledToFit()
-                            .overlay(
-                                Circle() // White border circle
-                                    .stroke(Color.white, lineWidth: 2) // White border with thickness
-                            )
                     }
                   OutlinedView(value: $streakCount)
                     
