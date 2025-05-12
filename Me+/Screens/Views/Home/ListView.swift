@@ -24,7 +24,10 @@ struct ListView: View {
     @State private var selectedHabitName : String = ""
     @State private var pressedTaskID: UUID? = nil
     let today = Calendar.current.startOfDay(for: Date())
-
+    
+    
+    // Add reminder format the task in listview
+    @State private var text: String = ""
     
     var filteredActivities: [Activity] {
         activities.filter {
@@ -79,11 +82,11 @@ struct ListView: View {
                                     else{
                                         if !activity.subtasks.isEmpty{
                                             Text("\(activity.subtasks.count) subtasks ")
-                                                .font(.system(size: 12))
+                                                .font(.system(size: 9))
                                             
                                         }else{
-                                            Text("\(activity.date.displayTime)")
-                                                .font(.system(size: 12))
+                                            Text("Anytime")
+                                                .font(.system(size: 9))
                                                 .strikethrough(activity.isCompleted,pattern: .solid, color: .black)
                                         }
                                     }
@@ -91,18 +94,18 @@ struct ListView: View {
                                     if !activity.isCompleted{
                                         Text(activity.name)
                                             .fontWeight(.semibold)
-                                            .font(.system(size: 15))
+                                            .font(.system(size: 14))
                                     }
                                     else{
                                         Text(activity.name)
                                             .fontWeight(.semibold)
-                                            .font(.system(size: 15))
+                                            .font(.system(size: 12))
                                             .strikethrough(activity.isCompleted,pattern: .solid, color: .black)
                                     }
                                 }
                                 Spacer()
                                 let isToday = Calendar.current.isDate(activity.date, inSameDayAs: Date())
-
+                                
                                 Button(action: {
                                     toggleCompleted(for: activity)
                                     onHabitCompleted?()
@@ -113,7 +116,7 @@ struct ListView: View {
                                 }
                                 .buttonStyle(.borderless)
                                 .disabled(!isToday)
-
+                                
                                 
                             }
                             .padding(22)
@@ -124,7 +127,7 @@ struct ListView: View {
                             .contentShape(Rectangle())
                             .scaleEffect(pressedTaskID == activity.id ? 0.95 : 1.0)
                             .animation(.easeInOut(duration: 0.2), value: pressedTaskID == activity.id)
-                            .onLongPressGesture {
+                            .onTapGesture{
                                 pressedTaskID = activity.id
                                 passtheIDofHabit = activity.id
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
@@ -134,19 +137,41 @@ struct ListView: View {
                                 }
                             }
                             .swipeActions(edge: .trailing) {
-                                    Button {
-                                        deleteAllFutureTasks(for: activity.baseID, from: activity.date)
-                                    } label: {
-                                        Label("Delete All", systemImage: "trash.slash")
-                                    }
-                                    .tint(.orange)
+                                Button {
+                                    deleteAllFutureTasks(for: activity.baseID, from: activity.date)
+                                } label: {
+                                    Label("Delete All", systemImage: "trash.slash")
+                                }
+                                .tint(.orange)
                                 Button{
-                                  deleteSingleActivity(activity: activity)
+                                    deleteSingleActivity(activity: activity)
                                 }label:{
                                     Label("Delete",systemImage:"trash")
                                 }.tint(.red)
                             }
                         }// HStack
+                        if Calendar.current.isDate(selectedDate, inSameDayAs: Date()) {
+                            HStack {
+                                VStack {
+                                    TextField("Add Task", text: $text)
+                                        .onSubmit {
+                                            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                            guard !trimmed.isEmpty else { return }
+
+                                            let activity = Activity(name: trimmed, date: Date.now, duration: 0, isCompleted: false)
+                                            modelContext.insert(activity)
+                                            text = ""
+                                        }
+                                }
+
+                                Image(systemName: "circle.dotted")
+                            }
+                            .padding(22)
+                            .background(Color.blue.opacity(0.2))
+                            .foregroundColor(.black)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+
                     }// Section of the lists
                     
                 }// List
@@ -174,8 +199,8 @@ struct ListView: View {
             .sheet(isPresented: $openAddHabit) {
                 if let selectedActivity = activities.first(where: { $0.id == passtheIDofHabit }) {
                     BottomSheetEditView(activity: selectedActivity)
-                        .presentationDetents([.fraction(0.4), .medium])
-                        .presentationDragIndicator(.hidden)
+//                        .presentationDetents([.fraction(0.5), .medium])
+//                        .presentationDragIndicator(.hidden)
                 } else {
                     Text("Activity not found.")
                 }
@@ -236,9 +261,6 @@ struct ListView: View {
             print("Error saving after deletion: \(error)")
         }
     }
-
-
-
 }
 
 #Preview {

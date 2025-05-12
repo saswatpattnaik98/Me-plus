@@ -17,16 +17,16 @@ struct PreloadedTaskView: View {
     @StateObject var addHabitViewModel = AddhabitViewModel()
 
     let tasks: [PreloadedTask] = [
-        .init(image: "Answer Email", text: "Answer Email", colour: .blue.opacity(0.4)),
-        .init(image: "Eat Breakfast", text: "Eat Breakfast", colour: .green.opacity(0.4)),
-        .init(image: "Open the Windows", text: "Open the Windows", colour: .cyan.opacity(0.4)),
-        .init(image: "Hair Cut", text: "Hair Cut", colour: Color.pink.opacity(0.4)),
-        .init(image: "Take Pills", text: "Take Pills", colour: Color.yellow.opacity(0.6)),
+        .init(image: "Answer Email", text: "Answer Email", colour: .blue.opacity(0.3)),
+        .init(image: "Eat Breakfast", text: "Eat Breakfast", colour: .green.opacity(0.2)),
+        .init(image: "Open the Windows", text: "Open the Windows", colour: .cyan.opacity(0.3)),
+        .init(image: "Hair Cut", text: "Hair Cut", colour: Color.pink.opacity(0.3)),
+        .init(image: "Take Pills", text: "Take Pills", colour: Color.yellow.opacity(0.4)),
         .init(image: "Walk", text: "Walk", colour: Color.orange.opacity(0.4)),
-        .init(image: "Take dog to walk", text: "Take dog to walk", colour: Color.red.opacity(0.4)),
+        .init(image: "Take dog to walk", text: "Take dog to walk", colour: Color.red.opacity(0.3)),
         .init(image: "write", text: "write", colour: Color.yellow.opacity(0.4)),
-        .init(image: "Book movie tickets", text: "Book movie tickets", colour: Color.blue.opacity(0.5)),
-        .init(image: "Development", text: "Development", colour: Color.cyan.opacity(0.5))
+        .init(image: "Book movie tickets", text: "Book movie tickets", colour: Color.blue.opacity(0.3)),
+        .init(image: "Development", text: "Development", colour: Color.cyan.opacity(0.3))
         
     ]
 
@@ -88,13 +88,14 @@ struct PreloadedTaskView: View {
                                 NavigationLink(
                                     destination: AddNewHabit(addHabitViewModel: addHabitViewModel),
                                     label: {
-                                        TaskView(image: "default", text: activity.name, colour: activity.color.opacity(0.4))
+                                        TaskView(image: "default", text: activity.name, colour: activity.color.opacity(0.2))
                                             .foregroundStyle(.black)
                                     }
                                 )
                                 .simultaneousGesture(
                                     TapGesture().onEnded {
                                         addHabitViewModel.habitName = activity.name
+                                        
                                     }
                                 )
                             }

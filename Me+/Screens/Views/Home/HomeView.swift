@@ -9,7 +9,10 @@ struct HomeView: View {
         @AppStorage("streakCount") private var storedStreakCount: Int = 0
         @AppStorage("lastStreakUpdateDate") private var lastStreakUpdateDate: String = ""
         @AppStorage("lastCheckedDate") private var lastCheckedDate: String = ""
-        @State private var streakCount: Int = 0
+    @AppStorage("lastStreakResetCheckDate") private var lastStreakResetCheckDate: String = ""
+    @AppStorage("streakResetToday") private var streakResetToday: Bool = false
+    
+        @State private var streaknumber: Int = 0
 
         // UI related properties
         @State private var showGraphicalCalendar = false
@@ -19,7 +22,7 @@ struct HomeView: View {
         @State private var selectedDate: Date = Date()
         @State private var showBronzeStar: Bool = false
         @State private var streakView = false
-        
+    
         @Query var activities: [Activity]
         
     
@@ -71,13 +74,15 @@ private var weeks: [[Date]] {
                             Spacer()
                             // The Streak Button on Home screen
                             Button{
+                                checkStreakResetIfNeeded()
                                 streakView.toggle()
+                                
                             }label: {
                                 HStack {
                                     Image(systemName: "flame.fill")
                                         .foregroundStyle(.orange)
                                         .font(.title2)
-                                    Text("\(streakCount)")
+                                    Text("\(streaknumber)")
                                         .foregroundStyle(.black)
                                         .font(.headline)
                                         .fontWeight(.semibold)
@@ -293,7 +298,7 @@ private var weeks: [[Date]] {
             ManageTasks()
         }
         .sheet(isPresented: $streakView){
-            StreakExpandView(streakCount: $streakCount)
+            StreakExpandView(streakCount: $streaknumber)
         }
     }// body
     
@@ -353,37 +358,42 @@ private func checkAndCarryOverTasksIfNeeded(context: ModelContext) {
     }
     func initializeStreakState() {
            // Load stored streak and update the UI
-           streakCount = storedStreakCount
+           streaknumber = storedStreakCount
            
            // Check if we need to reset the streak (no activity completed yesterday)
            checkStreakResetIfNeeded()
        }
+    
     func checkStreakResetIfNeeded() {
-           let calendar = Calendar.current
-           let today = calendar.startOfDay(for: Date())
-           let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
-           
-           // Only run this check once per day
-           if todayString != lastCheckedDate {
-               // Get yesterday's date
-               let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
-               
-               // Check if any activity was completed yesterday
-               let completedYesterday = activities.contains { activity in
-                   calendar.isDate(activity.date, inSameDayAs: yesterday) && activity.isCompleted
-               }
-               
-               // If streak is > 0 and no activity was completed yesterday, reset streak
-               if storedStreakCount > 0 && !completedYesterday {
-                   print("Streak reset: No activity completed yesterday")
-                   storedStreakCount = 0
-                   streakCount = 0
-               }
-               
-               // Update last checked date
-               lastCheckedDate = todayString
-           }
-       }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
+        
+        // Only run this check once per day, using a dedicated tracking variable
+        if todayString != lastStreakResetCheckDate {
+            print("Running streak reset check for \(todayString)")
+            
+            // Get yesterday's date
+            let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+            
+            // Check if any activity was completed yesterday
+            let completedYesterday = activities.contains { activity in
+                calendar.isDate(activity.date, inSameDayAs: yesterday) && activity.isCompleted
+            }
+            
+            // If streak is > 0 and no activity was completed yesterday, reset streak
+            if storedStreakCount > 0 && !completedYesterday {
+                print("Streak reset: No activity completed yesterday")
+                storedStreakCount = 0
+                streaknumber = 0
+                // Mark that streak was reset today so we can increment it when task is completed
+                streakResetToday = true
+            } else {
+                streakResetToday = false
+            }
+            lastStreakResetCheckDate = todayString
+        }
+    }
     // Call this when a task is marked as completed
     func onTaskCompleted() {
         let calendar = Calendar.current
@@ -411,8 +421,15 @@ private func checkAndCarryOverTasksIfNeeded(context: ModelContext) {
             // Increment streak and update last update date
             storedStreakCount += 1
             lastStreakUpdateDate = todayString
-            streakCount = storedStreakCount
-            print("Streak incremented to: \(streakCount)")
+            streaknumber = storedStreakCount
+            
+            // If streak was reset today, we need to clear the flag since we've now
+            // successfully started a new streak
+            if streakResetToday {
+                streakResetToday = false
+            }
+            
+            print("Streak incremented to: \(streaknumber)")
         }
     }
     

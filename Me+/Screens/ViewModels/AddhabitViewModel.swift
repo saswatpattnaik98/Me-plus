@@ -4,6 +4,7 @@ import SwiftData
 
 class AddhabitViewModel:ObservableObject{
     let ReminderType = ["No reminder", "Notification", "Alarm"]
+    @Published var habitID: UUID = UUID()
     @Published var habitName:String = ""
     @Published var alarmDate: Date = Date()
     @Published var date: Date = Date()

@@ -6,13 +6,13 @@
 	<array>
 		<string>com.yourapp.backgroundtask</string>
 	</array>
-	<key>UNNotificationAlertStyle</key>
-	<string>critical</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
+	<key>UNNotificationAlertStyle</key>
+	<string>critical</string>
 </dict>
 </plist>

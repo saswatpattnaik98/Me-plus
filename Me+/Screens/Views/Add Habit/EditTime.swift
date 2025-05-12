@@ -35,16 +35,27 @@ struct EditTimeView: View {
                 }
                     .pickerStyle(.segmented)
                     if timeSelection == "Point Time"{
-                        DatePicker("", selection: $time1, displayedComponents: .hourAndMinute)
-                            .datePickerStyle(.wheel)
-                    }else{
-                        ScrollView{
+                        HStack{
                             DatePicker("", selection: $time1, displayedComponents: .hourAndMinute)
                                 .datePickerStyle(.wheel)
-                            
+                            Spacer()
+                            Spacer()
+                        }
+                    }else{
+                        ScrollView{
+                            HStack{
+                                DatePicker("", selection: $time1, displayedComponents: .hourAndMinute)
+                                    .datePickerStyle(.wheel)
+                                Spacer()
+                                Spacer()
+                            }
                             Text("To")
-                            DatePicker("", selection: $time2, displayedComponents: .hourAndMinute)
-                                .datePickerStyle(.wheel)
+                            HStack{
+                                DatePicker("", selection: $time2, displayedComponents: .hourAndMinute)
+                                    .datePickerStyle(.wheel)
+                                Spacer()
+                                Spacer()
+                            }
         
                         }
                         .scrollContentBackground(.hidden)

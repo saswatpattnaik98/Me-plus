@@ -12,7 +12,7 @@ struct TaskView: View {
                 .frame(width: 30, height: 30)
                 .scaledToFit()
             Text("\(text)")
-                .font(.headline)
+                .font(.system(size: 14))
                 .fontWeight(.semibold)
             Spacer()
             Image(systemName: "chevron.right")

@@ -54,9 +54,6 @@ struct ManageTasks: View {
             List {
                 ForEach(filteredActivities) { activity in
                     HStack {
-                        Image("\(activity.name)") // Replace with an appropriate image if needed
-                            .resizable()
-                            .frame(width: 25, height: 30)
                         VStack(alignment: .leading) {
                             if activity.isCompleted {
                                 Text("\(activity.date.displayDate)")
@@ -69,10 +66,18 @@ struct ManageTasks: View {
                                 .font(.system(size: 13))
                                 .fontWeight(.semibold)
                         }
+                        Spacer()
+                        VStack(spacing:3){
+                            Text("\(activity.date.displayDate)")
+                                .font(.system(size: 10))
+                            
+//                            Text("Daily")
+//                                .font(.system(size: 11))
+                        }
                     }
-                    .padding()
+                    .padding(20)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(activity.color.opacity(0.4))
+                    .background(activity.color.opacity(0.3))
                     .foregroundColor(.black)
                     .clipShape(RoundedRectangle(cornerRadius: 19))
                 }

@@ -26,18 +26,6 @@ struct RepeatBottomSelect: View {
                         dismiss()
                     }
                 }
-             
-                HStack{
-                    Button{
-                        goToCustomRepeat = true
-                    }label: {
-                        Text("Custom")
-                            .font(.headline)
-                            .padding()
-                            .foregroundStyle(.black)
-                    }
-                }
-                Spacer()
             }
             .sheet(isPresented: $goToCustomRepeat){
                 RepeatCustomView(endDate: endDate)

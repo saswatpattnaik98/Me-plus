@@ -12,6 +12,7 @@ struct AddNewHabit: View {
     @Query private var activities: [Activity]
     @EnvironmentObject var alarmManager: AlarmManager
     
+    
     var isValid: Bool {
         !addHabitViewModel.habitName.isEmpty
     }
@@ -118,7 +119,6 @@ struct AddNewHabit: View {
                             }
                         }
                     }
-
                     dismiss()
                     dismiss()
                 }label: {
@@ -134,7 +134,9 @@ struct AddNewHabit: View {
         VStack(spacing: 5) {
             NavigationLink(destination: EditDateAddedView(date: $addHabitViewModel.date)) {
                 HStack(spacing: 12) {
-                    Image(systemName: "calendar").fontWeight(.bold)
+                    Image(systemName: "calendar")
+                        .font(.headline)
+                        .fontWeight(.bold)
                     Text("Date")
                     Spacer()
                     Text("\(addHabitViewModel.date.displayDate)")
@@ -148,6 +150,7 @@ struct AddNewHabit: View {
             
             HStack(spacing: 12) {
                 Image(systemName: "clock")
+                    .font(.headline)
                 Text("Time")
                 Spacer()
                 if addHabitViewModel.showTimePicker{
@@ -173,7 +176,9 @@ struct AddNewHabit: View {
             Divider().frame(width: 300, height: 0.5).background(Color.gray.opacity(0.5))
             
             HStack(spacing: 12) {
-                Image(systemName: "repeat.circle").fontWeight(.bold)
+                Image(systemName: "repeat.circle")
+                    .font(.headline)
+                    .fontWeight(.bold)
                 Text("Repeat")
                 Spacer()
                 Text("\(addHabitViewModel.selectedRepeat)")
@@ -190,7 +195,9 @@ struct AddNewHabit: View {
             Divider().frame(width: 300, height: 0.5).background(Color.gray.opacity(0.5))
             
             HStack(spacing: 12) {
-                Image(systemName: "calendar.day.timeline.left").fontWeight(.bold)
+                Image(systemName: "calendar.day.timeline.left")
+                    .font(.headline)
+                    .fontWeight(.bold)
                 Text("Reminder")
                 Spacer()
                 Picker("", selection: $addHabitViewModel.reminderType) {
@@ -203,26 +210,31 @@ struct AddNewHabit: View {
             
             Divider().frame(width: 300, height: 0.5).background(Color.gray.opacity(0.5))
             
-            HStack(spacing: 12) {
+            HStack(spacing: 12){
                 Image(systemName: "clock.fill")
+                    .font(.headline)
+                    .foregroundStyle(addHabitViewModel.showTimePicker ? .black : .gray)
                 Text("Remind me @")
+                    .foregroundStyle(addHabitViewModel.showTimePicker ? .black : .gray)
                 Spacer()
-                Picker("", selection: $addHabitViewModel.reminderTime) {
-                    ForEach(ReminderOffset.allCases) { option in
-                        Text(option.rawValue).tag(option)
+                    Picker("", selection: $addHabitViewModel.reminderTime) {
+                        ForEach(ReminderOffset.allCases) { option in
+                            Text(option.rawValue).tag(option)
+                        }
                     }
-                }
+                    .disabled(!addHabitViewModel.showTimePicker)
+                
             }
             .padding(10)
         }
-        .frame(width: 360, height:  310)
+        .frame(width: 360, height:  330)
         .background(RoundedRectangle(cornerRadius: 15).fill(Color.white.opacity(0.7)))
         .sheet(isPresented: $addHabitViewModel.showEditTime){
             EditTimeView(time1: $addHabitViewModel.time, time2: $addHabitViewModel.endTime, showTimePicker: $addHabitViewModel.showTimePicker, periodTime : $addHabitViewModel.periodTime)
         }
        .sheet(isPresented: $addHabitViewModel.showrepeatPicker){
             RepeatBottomSelect(selectedRepeat: $addHabitViewModel.selectedRepeat, endDate: $addHabitViewModel.date)
-            .presentationDetents([.fraction(0.5), .medium])
+            .presentationDetents([.fraction(0.4), .medium])
             .presentationDragIndicator(.hidden)
         }
     }
