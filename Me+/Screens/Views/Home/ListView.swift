@@ -39,6 +39,7 @@ struct ListView: View {
         NavigationStack{
             ZStack{
                 if filteredActivities.isEmpty {
+                    // Placeholder when no task added ...
                     VStack(spacing: 12) {
                         Image("noHabits") // Make sure "noHabits" exists in Assets
                             .resizable()
@@ -106,6 +107,7 @@ struct ListView: View {
                                 Spacer()
                                 let isToday = Calendar.current.isDate(activity.date, inSameDayAs: Date())
                                 
+                                // Button to mark task as done...
                                 Button(action: {
                                     toggleCompleted(for: activity)
                                     onHabitCompleted?()
@@ -116,8 +118,6 @@ struct ListView: View {
                                 }
                                 .buttonStyle(.borderless)
                                 .disabled(!isToday)
-                                
-                                
                             }
                             .padding(22)
                             .background(activity.color.opacity(0.2))
@@ -137,18 +137,22 @@ struct ListView: View {
                                 }
                             }
                             .swipeActions(edge: .trailing) {
-                                Button {
-                                    deleteAllFutureTasks(for: activity.baseID, from: activity.date)
-                                } label: {
-                                    Label("Delete All", systemImage: "trash.slash")
+                                if !activity.isCompleted {
+                                    Button {
+                                        deleteAllFutureTasks(for: activity.baseID, from: activity.date)
+                                    } label: {
+                                        Label("Delete All", systemImage: "trash.slash")
+                                    }
+                                    .tint(.orange)
+                                    Button{
+                                        deleteSingleActivity(activity: activity)
+                                    }label:{
+                                        Label("Delete",systemImage:"trash")
+                                    }.tint(.red)
                                 }
-                                .tint(.orange)
-                                Button{
-                                    deleteSingleActivity(activity: activity)
-                                }label:{
-                                    Label("Delete",systemImage:"trash")
-                                }.tint(.red)
                             }
+                            .listRowSeparator(.hidden) // Hide separator for this row
+                            .listRowInsets(EdgeInsets(top: 3, leading: 35, bottom: 3, trailing: 35)) // Add some spacing between items
                         }// HStack
                         if Calendar.current.isDate(selectedDate, inSameDayAs: Date()) {
                             HStack {
@@ -166,18 +170,22 @@ struct ListView: View {
 
                                 Image(systemName: "circle.dotted")
                             }
-                            .padding(22)
+                            .padding(EdgeInsets(top: 15, leading: 50, bottom: 15, trailing: 26))
                             .background(Color.blue.opacity(0.2))
                             .foregroundColor(.black)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .listRowInsets(EdgeInsets(top: 1, leading: 35, bottom: 1, trailing: 35))
+                           // .listRowSeparator(.hidden)
+                           // .listRowBackground(Color.clear)
                         }
-
                     }// Section of the lists
-                    
+                    .listSectionSeparator(.hidden) // Hide section separators
                 }// List
                 .scrollIndicators(.hidden)
                 .scrollContentBackground(.hidden)
-                .padding(.top, -20)
+                .listStyle(PlainListStyle()) // Use PlainListStyle to help remove default styling
+                .environment(\.defaultMinListRowHeight, 0) // Minimize default row height
+                .padding(.top, -1)
             }
             .toolbar {
                 ToolbarItem(placement: .bottomBar) {
@@ -207,7 +215,7 @@ struct ListView: View {
             }
         }// NavigationStack
     }
-    
+    // Function to be called when task is completed ...
     private func toggleCompleted(for activity: Activity) {
         activity.isCompleted = true
         notificationManager.cancelNotification(for: activity.id)
@@ -218,6 +226,7 @@ struct ListView: View {
             showBronzeStar = activities.contains { $0.isCompleted }
         }
     }
+    // Delete solo task...
     private func deleteSingleActivity(activity: Activity) {
         AlarmManager.shared.stopAlarm(for: activity.id)
         notificationManager.cancelNotification(for: activity.id)
@@ -229,6 +238,7 @@ struct ListView: View {
             print("Failed to save after deletion: \(error)")
         }
     }
+    // Delete tasks that are created for repeat ...
     func deleteAllFutureTasks(for baseID: UUID?, from date: Date) {
         guard let baseID = baseID else {
                print("Cannot delete tasks with nil baseID")
@@ -241,8 +251,6 @@ struct ListView: View {
         let futureTasks = activities.filter {
             $0.baseID == baseID && $0.date >= date
         }
-        
-        // If no tasks are found, return early
         guard !futureTasks.isEmpty else {
             print("No future tasks found for deletion.")
             return
@@ -254,7 +262,6 @@ struct ListView: View {
             modelContext.delete(task)
         }
         
-        // Save changes to the context
         do {
             try modelContext.save()
         } catch {
@@ -271,4 +278,3 @@ struct ListView: View {
     return ListView(selectedDate:.constant(Date()),showBronzeStar: .constant(true))
         .modelContainer(modelContainer)
 }
-

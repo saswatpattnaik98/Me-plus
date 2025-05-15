@@ -55,9 +55,10 @@ private var weeks: [[Date]] {
     
     // Body Property
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.white.ignoresSafeArea()
-            VStack(spacing: 0) {
+        ZStack(alignment: .top){
+            Color(.systemBackground)
+                    .ignoresSafeArea()
+            VStack(spacing: 1) {
                 ZStack(alignment: .top) {
                     Color.white.opacity(0.2)
                         .ignoresSafeArea(edges: .top)
@@ -236,7 +237,6 @@ private var weeks: [[Date]] {
                 }
                 
                 // List of Habits
-                
                 ListView(selectedDate: $selectedDate, showBronzeStar: $showBronzeStar, onHabitCompleted: {
                   onTaskCompleted()
                 })
@@ -432,8 +432,6 @@ private func checkAndCarryOverTasksIfNeeded(context: ModelContext) {
             print("Streak incremented to: \(streaknumber)")
         }
     }
-    
-
 }
 extension Date {
     func startOfWeek(using calendar: Calendar = .current) -> Date {

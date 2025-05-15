@@ -71,8 +71,6 @@ struct ManageTasks: View {
                             Text("\(activity.date.displayDate)")
                                 .font(.system(size: 10))
                             
-//                            Text("Daily")
-//                                .font(.system(size: 11))
                         }
                     }
                     .padding(20)
