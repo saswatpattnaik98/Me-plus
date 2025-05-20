@@ -240,7 +240,6 @@ class AlarmManager: NSObject, ObservableObject, UNUserNotificationCenterDelegate
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
                                  withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        print("📱 Notification received while app in foreground: \(notification.request.identifier)")
         
         // Extract activity ID from notification
         let activityID = extractActivityID(from: notification.request.identifier)
@@ -287,19 +286,16 @@ class AlarmManager: NSObject, ObservableObject, UNUserNotificationCenterDelegate
             }
             
         case UNNotificationDefaultActionIdentifier:
-            if let id = activityID {
-                startAlarm(for: id)
-                print("▶️ Alarm started via default action")
-            }
+            // User tapped the notification - just open the app, don't restart alarm
+            print("📱 Notification tapped - opening app")
+            // You can add navigation logic here if needed
             
         case UNNotificationDismissActionIdentifier:
             print("🔕 Notification dismissed")
             
         default:
-            if let id = activityID {
-                startAlarm(for: id)
-                print("▶️ Alarm started via unknown action")
-            }
+            // Don't start alarm for unknown actions either
+            print("❓ Unknown notification action: \(response.actionIdentifier)")
         }
 
         completionHandler()

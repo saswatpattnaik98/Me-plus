@@ -93,8 +93,6 @@ class AddhabitViewModel:ObservableObject{
             )
         }
     }
-
-    
     // Alarm scheduler
     func scheduleAlarm(for activityID: UUID, baseDate: Date) {
         var finalDate = baseDate

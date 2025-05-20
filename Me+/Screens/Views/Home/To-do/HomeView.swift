@@ -106,9 +106,9 @@ private var weeks: [[Date]] {
                                     .foregroundStyle(.black)
                             }
                         }
-                        .padding(.top, 52) // ensures space below notch
-                        .padding(.horizontal)// ensures that buttons wont feels away from the alignment
-                        
+                        .padding(.top, 52) //space below notch
+                        .padding(.horizontal)//Space so buttons wont feels away from the alignment
+// Table view of the calendar in scroll ...
         TabView(selection: $currentWeekStart) {
                 ForEach(weeks, id: \.[0]) { week in
                     HStack(spacing: 5) {

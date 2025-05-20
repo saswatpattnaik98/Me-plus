@@ -14,12 +14,12 @@ struct StreakExpandView: View {
                     if streakCount != 0{
                         Image("flame")
                             .resizable()
-                            .frame(width: 200,height: 200)
+                            .frame(width: 100,height: 100)
                             .scaledToFit()
                     }else{
                         Image("flamedull")
                             .resizable()
-                            .frame(width: 200,height: 200)
+                            .frame(width: 100,height: 100)
                             .scaledToFit()
                     }
                   OutlinedView(value: $streakCount)
@@ -29,13 +29,16 @@ struct StreakExpandView: View {
                         .font(.title)
                         .fontWeight(.black)
                         .foregroundStyle(.orange)
-                    Spacer()
+                    Spacer(minLength: 40)
+                    
+                    StreakCalendarView()
                 }
+                
             }
         }
     }
 }
 
 #Preview {
-    StreakExpandView(streakCount: .constant(1))
+    StreakExpandView(streakCount: .constant(6))
 }

@@ -24,6 +24,7 @@ struct ListView: View {
     @State private var selectedHabitName : String = ""
     @State private var pressedTaskID: UUID? = nil
     let today = Calendar.current.startOfDay(for: Date())
+    @State var subtaskDone : Bool = false
     
     
     // Add reminder format the task in listview
@@ -207,8 +208,7 @@ struct ListView: View {
             .sheet(isPresented: $openAddHabit) {
                 if let selectedActivity = activities.first(where: { $0.id == passtheIDofHabit }) {
                     BottomSheetEditView(activity: selectedActivity)
-//                        .presentationDetents([.fraction(0.5), .medium])
-//                        .presentationDragIndicator(.hidden)
+
                 } else {
                     Text("Activity not found.")
                 }

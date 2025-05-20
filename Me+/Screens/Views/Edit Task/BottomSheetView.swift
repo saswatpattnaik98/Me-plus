@@ -5,6 +5,9 @@ struct BottomSheetEditView: View {
     @State private var showEditHabit = false
     @StateObject var addHabitViewModel = AddhabitViewModel()
     @StateObject var editHabitViewModel : EditHabitViewModel
+    @State private var subtaskCount = 0
+    @State private var subtaskCompleted = 0
+    
     
     init(activity: Activity) {
            self.activity = activity
@@ -48,13 +51,20 @@ struct BottomSheetEditView: View {
                                             )
                                         Spacer()
                                         Button{
-                                            task.isCompleted.toggle()
+                                            if !task.isCompleted{
+                                              task.isCompleted = true
+                                             checkAllSubtaskCompleted()
+                                            }
                                         }label: {
                                             Image(systemName: task.isCompleted ? "checkmark.seal.fill" : "circle")
                                                 .font(.title2)
                                                 .foregroundStyle(task.isCompleted ? .green : .black)
                                         }
-                                    }.padding()
+                                    }
+                                    .padding(5)
+                                    .onChange(of: task.isCompleted){
+                                        checktaskCompleted(task: task)
+                                    }
                                 }
                             }
                         }else{
@@ -89,6 +99,10 @@ struct BottomSheetEditView: View {
                     }
                 
                 }
+                .onAppear {
+                    subtaskCount = activity.subtasks.count
+                    subtaskCompleted = activity.subtasks.filter { $0.isCompleted }.count
+                }
             }
         }
     }
@@ -99,6 +113,16 @@ struct BottomSheetEditView: View {
               return Image("default") // your fallback image name
           }
       }
+    func checktaskCompleted(task: Subtask) {
+        if task.isCompleted{
+           subtaskCompleted += 1
+        }
+    }
+    func checkAllSubtaskCompleted(){
+        if activity.subtasks.allSatisfy({ $0.isCompleted }) {
+              activity.isCompleted = true
+          }
+    }
 }
 
 // Preview
