@@ -257,7 +257,6 @@ class AlarmManager: NSObject, ObservableObject, UNUserNotificationCenterDelegate
             completionHandler([.alert, .sound, .badge])
         }
     }
-
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                  withCompletionHandler completionHandler: @escaping () -> Void) {
         print("📱 User responded to notification: \(response.actionIdentifier)")

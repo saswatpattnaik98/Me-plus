@@ -8,7 +8,6 @@
 import SwiftUI
 import SwiftData
 
-
 @main
 struct Me_App: App {
     @StateObject private var alarmManager = AlarmManager.shared

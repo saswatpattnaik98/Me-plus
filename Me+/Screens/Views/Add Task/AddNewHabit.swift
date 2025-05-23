@@ -11,6 +11,7 @@ struct AddNewHabit: View {
     
     @Query private var activities: [Activity]
     @EnvironmentObject var alarmManager: AlarmManager
+    let selectionfeedabackgenerator = UISelectionFeedbackGenerator()
     
     
     var isValid: Bool {
@@ -119,6 +120,7 @@ struct AddNewHabit: View {
                             }
                         }
                     }
+                    selectionfeedabackgenerator.selectionChanged()
                     dismiss()
                     dismiss()
                 }label: {

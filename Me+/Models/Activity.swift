@@ -44,6 +44,26 @@ class Activity: ObservableObject {
         default: return .blue
         }
     }
+    
+    /// Computed property to check if this task is part of a repeating series
+        var isRepeating: Bool {
+            return baseID != nil
+        }
+        
+        /// Function to check if this task is repeating (alternative approach)
+        func isTaskRepeating() -> Bool {
+            return baseID != nil
+        }
+        
+        /// Check if this activity has other instances (past or future)
+        /// You would call this with your modelContext
+        func hasOtherInstances(in activities: [Activity]) -> Bool {
+            guard let baseID = self.baseID else { return false }
+            
+            return activities.contains { activity in
+                activity.baseID == baseID && activity.id != self.id
+            }
+        }
 }
 
 

@@ -11,7 +11,7 @@ class AddhabitViewModel:ObservableObject{
     @Published var tempduration: Int = 0
     @Published var selectedRepeat: RepeatOption = .None
     @Published var  reminderTime: ReminderOffset = .none
-    @Published var reminderType: String = "Notification"
+    @Published var reminderType: String = "No reminder"
     @Published var subtaskName: String = ""
     @Published var subtasks: [Subtask] = []
     @Published var  periodTime = false

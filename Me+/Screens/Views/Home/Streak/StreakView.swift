@@ -2,7 +2,7 @@ import SwiftUI
 
 struct StreakExpandView: View {
     @Binding var streakCount : Int
-   @State var text : String = "day streak"
+    @State var text : String = "day streak"
     var body: some View {
         NavigationStack{
             ZStack{
@@ -30,8 +30,7 @@ struct StreakExpandView: View {
                         .fontWeight(.black)
                         .foregroundStyle(.orange)
                     Spacer(minLength: 40)
-                    
-                    StreakCalendarView()
+                    // here
                 }
                 
             }

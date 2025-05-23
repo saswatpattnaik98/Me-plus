@@ -3,38 +3,38 @@ import SwiftData
 
 struct HomeView: View {
     // MARK: - Properties
-        @Environment(\.modelContext) private var context
-        
-        // Streak related properties
-        @AppStorage("streakCount") private var storedStreakCount: Int = 0
-        @AppStorage("lastStreakUpdateDate") private var lastStreakUpdateDate: String = ""
-        @AppStorage("lastCheckedDate") private var lastCheckedDate: String = ""
+    @Environment(\.modelContext) private var context
+    
+    // Streak related properties
+    @AppStorage("streakCount") private var storedStreakCount: Int = 0
+    @AppStorage("lastStreakUpdateDate") private var lastStreakUpdateDate: String = ""
+    @AppStorage("lastCheckedDate") private var lastCheckedDate: String = ""
     @AppStorage("lastStreakResetCheckDate") private var lastStreakResetCheckDate: String = ""
     @AppStorage("streakResetToday") private var streakResetToday: Bool = false
     
-        @State private var streaknumber: Int = 0
-
-        // UI related properties
-        @State private var showGraphicalCalendar = false
-        @State private var dragOffset: CGFloat = 0
-        @State private var currentWeekStart: Date = Calendar.current.startOfDay(for: Date()).startOfWeek()
-        @State private var openManageTasks = false
-        @State private var selectedDate: Date = Date()
-        @State private var showBronzeStar: Bool = false
-        @State private var streakView = false
+    @State private var streaknumber: Int = 0
     
-        @Query var activities: [Activity]
-        
+    // UI related properties
+    @State private var showGraphicalCalendar = false
+    @State private var dragOffset: CGFloat = 0
+    @State private var currentWeekStart: Date = Calendar.current.startOfDay(for: Date()).startOfWeek()
+    @State private var openManageTasks = false
+    @State private var selectedDate: Date = Date()
+    @State private var showBronzeStar: Bool = false
+    @State private var streakView = false
+    
+    @Query var activities: [Activity]
+    let notificationfeedbackgenerator = UINotificationFeedbackGenerator()
     
     
-func hasCompletedActivity(on date: Date) -> Bool {
+    func hasCompletedActivity(on date: Date) -> Bool {
         let calendar = Calendar.current
         return activities.contains { activity in
             calendar.isDate(activity.date, inSameDayAs: date) && activity.isCompleted
         }
     }
     
-private var weeks: [[Date]] {
+    private var weeks: [[Date]] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let startDate = calendar.date(byAdding: .weekOfYear, value: -2, to: today.startOfWeek())!
@@ -57,7 +57,7 @@ private var weeks: [[Date]] {
     var body: some View {
         ZStack(alignment: .top){
             Color(.systemBackground)
-                    .ignoresSafeArea()
+                .ignoresSafeArea()
             VStack(spacing: 1) {
                 ZStack(alignment: .top) {
                     Color.white.opacity(0.2)
@@ -94,25 +94,14 @@ private var weeks: [[Date]] {
                                         .fill(Color.white)
                                 )
                             }
-                            Menu {
-                                Button {
-                                    openManageTasks = true
-                                } label: {
-                                    Label("Manage my tasks", systemImage: "checkmark.square")
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis")
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(.black)
-                            }
                         }
                         .padding(.top, 52) //space below notch
                         .padding(.horizontal)//Space so buttons wont feels away from the alignment
-// Table view of the calendar in scroll ...
-        TabView(selection: $currentWeekStart) {
-                ForEach(weeks, id: \.[0]) { week in
-                    HStack(spacing: 5) {
-                            ForEach(week, id: \.self) { date in
+                        // Table view of the calendar in scroll ...
+                        TabView(selection: $currentWeekStart) {
+                            ForEach(weeks, id: \.[0]) { week in
+                                HStack(spacing: 5) {
+                                    ForEach(week, id: \.self) { date in
                                         let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
                                         
                                         VStack(spacing: 4) {
@@ -147,14 +136,14 @@ private var weeks: [[Date]] {
                                             }
                                             
                                         }
-        
+                                        
                                         .frame(width: 47, height: 71)
                                         // For that effect of light apprearance even when today is not selected
                                         .background(
                                             Group {
                                                 let isToday = Calendar.current.isDateInToday(date)
                                                 let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-
+                                                
                                                 if isSelected {
                                                     RoundedRectangle(cornerRadius: 58)
                                                         .fill(Color.purple.opacity(0.3))
@@ -180,7 +169,7 @@ private var weeks: [[Date]] {
                         // Today Text or date text on upperright Corner of Homeview
                         HStack(spacing: 0){
                             Spacer()
-                          //  Spacer()
+                            //  Spacer()
                             VStack(spacing: 2) {
                                 Capsule()
                                     .fill(Color.gray.opacity(0.6))
@@ -196,11 +185,13 @@ private var weeks: [[Date]] {
                             
                             // This preserves layout even when the button is hidden
                             Group {
-                                if !Calendar.current.isDateInToday(selectedDate) {
+                                if !Calendar.current.isDateInToday(selectedDate){
                                     Button {
                                         let today = Calendar.current.startOfDay(for: Date())
-                                        selectedDate = today
-                                        currentWeekStart = today.startOfWeek()
+                                        withAnimation{
+                                            selectedDate = today
+                                            currentWeekStart = today.startOfWeek()
+                                        }
                                     } label: {
                                         Text("Today")
                                             .foregroundStyle(.black)
@@ -222,7 +213,7 @@ private var weeks: [[Date]] {
                                 }
                             }
                         }
-
+                        
                     }
                     .gesture(
                         DragGesture()
@@ -238,7 +229,7 @@ private var weeks: [[Date]] {
                 
                 // List of Habits
                 ListView(selectedDate: $selectedDate, showBronzeStar: $showBronzeStar, onHabitCompleted: {
-                  onTaskCompleted()
+                    onTaskCompleted()
                 })
             }
             // Modifier to update the schdeduled task
@@ -302,7 +293,7 @@ private var weeks: [[Date]] {
         }
     }// body
     
-private func dateLabel(for date: Date) -> String {
+    private func dateLabel(for date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) { return "Today" }
         if calendar.isDateInYesterday(date) { return "Yesterday" }
@@ -312,57 +303,94 @@ private func dateLabel(for date: Date) -> String {
         return formatter.string(from: date)
     }
     
-private func dayOfWeek(from date: Date) -> String {
+    private func dayOfWeek(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "EEE"
         return formatter.string(from: date)
     }
     
-private func dayNumber(from date: Date) -> String {
+    private func dayNumber(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "d"
         return formatter.string(from: date)
     }
     // These are the functions for rescheduling
-    
-private func carryOverUncompletedActivities(context: ModelContext) {
-        let today = Calendar.current.startOfDay(for: Date())
-
+    private func carryOverUncompletedActivities(context: ModelContext) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+        
+        // Only carry over tasks from yesterday that haven't been completed and haven't been rescheduled yet
         let fetchDescriptor = FetchDescriptor<Activity>(
             predicate: #Predicate { activity in
-                activity.isCompleted == false && activity.date < today
+                activity.isCompleted == false &&
+                activity.isRescheduled == false &&
+                activity.date >= yesterday && activity.date < today
             }
         )
-
+        
         if let oldActivities = try? context.fetch(fetchDescriptor) {
             for activity in oldActivities {
+                // Create new rescheduled activity for today
                 let newActivity = Activity(
-                    name : activity.name,
+                    name: activity.name,
                     date: today,
                     duration: 0,
                     isCompleted: false,
                     isRescheduled: true
                 )
                 context.insert(newActivity)
+                
+                // Mark the original activity as rescheduled to prevent future carry-overs
+                activity.isRescheduled = true
             }
+            
+            // Save the changes
+            try? context.save()
         }
     }
-
-private func checkAndCarryOverTasksIfNeeded(context: ModelContext) {
-        let todayString = DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .none)
+    
+    private func checkAndCarryOverTasksIfNeeded(context: ModelContext) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
         
+        // Only run once per day
         if todayString != lastCheckedDate {
             carryOverUncompletedActivities(context: context)
             lastCheckedDate = todayString
         }
     }
+    
+    // Optional: Add a cleanup function to remove old uncompleted tasks
+    private func cleanupOldUncompletedTasks(context: ModelContext) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: today)!
+        
+        // Remove uncompleted tasks older than 7 days that have been rescheduled
+        let fetchDescriptor = FetchDescriptor<Activity>(
+            predicate: #Predicate { activity in
+                activity.isCompleted == false &&
+                activity.isRescheduled == true &&
+                activity.date < sevenDaysAgo
+            }
+        )
+        
+        if let oldActivities = try? context.fetch(fetchDescriptor) {
+            for activity in oldActivities {
+                context.delete(activity)
+            }
+            try? context.save()
+        }
+    }
     func initializeStreakState() {
-           // Load stored streak and update the UI
-           streaknumber = storedStreakCount
-           
-           // Check if we need to reset the streak (no activity completed yesterday)
-           checkStreakResetIfNeeded()
-       }
+        // Load stored streak and update the UI
+        streaknumber = storedStreakCount
+        
+        // Check if we need to reset the streak (no activity completed yesterday)
+        checkStreakResetIfNeeded()
+    }
     
     func checkStreakResetIfNeeded() {
         let calendar = Calendar.current
@@ -411,11 +439,11 @@ private func checkAndCarryOverTasksIfNeeded(context: ModelContext) {
     }
     
     // Update streak when first activity is completed in a day
-    func checkAndUpdateStreakOnFirstCompletion() {
+    func checkAndUpdateStreakOnFirstCompletion(){
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
-
+        
         // Check if we already updated streak for today
         if todayString != lastStreakUpdateDate {
             // Increment streak and update last update date
@@ -430,6 +458,8 @@ private func checkAndCarryOverTasksIfNeeded(context: ModelContext) {
             }
             
             print("Streak incremented to: \(streaknumber)")
+            notificationfeedbackgenerator.notificationOccurred(.success)
+            
         }
     }
 }
@@ -447,5 +477,6 @@ extension Date {
 
 #Preview {
     HomeView()
+        .preferredColorScheme(.light)
 }
 

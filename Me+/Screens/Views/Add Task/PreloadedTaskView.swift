@@ -15,7 +15,8 @@ struct PreloadedTaskView: View {
     @Query(sort: \Activity.name)
     private var activities : [Activity]
     @StateObject var addHabitViewModel = AddhabitViewModel()
-
+    @Binding var selectedDate: Date
+    
     let tasks: [PreloadedTask] = [
         .init(image: "Answer Email", text: "Answer Email", colour: .blue.opacity(0.3)),
         .init(image: "Eat Breakfast", text: "Eat Breakfast", colour: .green.opacity(0.2)),
@@ -29,7 +30,7 @@ struct PreloadedTaskView: View {
         .init(image: "Development", text: "Development", colour: Color.cyan.opacity(0.3))
         
     ]
-
+    
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -39,7 +40,7 @@ struct PreloadedTaskView: View {
                         .fontWeight(.bold)
                         .multilineTextAlignment(.center)
                         .listRowBackground(Color.clear)
-
+                    
                     if !newtask.isEmpty {
                         Text("Tap to rename")
                             .padding(3)
@@ -47,12 +48,12 @@ struct PreloadedTaskView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                             .listRowBackground(Color.clear)
                     }
-
+                    
                     VStack(alignment: .leading, spacing: 20) {
                         Text("Suggestions ?")
                             .font(.headline)
                             .padding(.horizontal)
-
+                        
                         // Preloaded tasks filtered by name
                         ForEach(tasks.filter { task in
                             newtask.isEmpty || task.text.lowercased().contains(newtask.lowercased())
@@ -69,19 +70,20 @@ struct PreloadedTaskView: View {
                             .simultaneousGesture(
                                 TapGesture().onEnded {
                                     addHabitViewModel.habitName = task.text
+                                    addHabitViewModel.date = selectedDate
                                 }
                             )
                         }
-
+                        
                         Divider()
                             .padding(.vertical)
-
+                        
                         // Recently Added Activities filtered by name
                         if !activities.isEmpty {
                             Text("Recently Added")
                                 .font(.headline)
                                 .padding(.horizontal)
-
+                            
                             ForEach(activities.filter { activity in
                                 newtask.isEmpty || activity.name.lowercased().contains(newtask.lowercased())
                             }) { activity in
@@ -95,7 +97,7 @@ struct PreloadedTaskView: View {
                                 .simultaneousGesture(
                                     TapGesture().onEnded {
                                         addHabitViewModel.habitName = activity.name
-                                        
+                                        addHabitViewModel.date = selectedDate
                                     }
                                 )
                             }
@@ -105,7 +107,7 @@ struct PreloadedTaskView: View {
                 }
                 .padding(50)
             }
-
+            
             NavigationLink(
                 destination: AddNewHabit(addHabitViewModel: addHabitViewModel),
                 isActive: $goToAddNewHabit,
@@ -114,6 +116,7 @@ struct PreloadedTaskView: View {
             if !newtask.isEmpty {
                 Button {
                     addHabitViewModel.habitName = newtask
+                    addHabitViewModel.date = selectedDate
                     goToAddNewHabit = true
                 } label: {
                     Text("Continue")
@@ -130,6 +133,6 @@ struct PreloadedTaskView: View {
 }
 
 #Preview {
-    PreloadedTaskView()
+    PreloadedTaskView(selectedDate:.constant(Date()))
 }
 

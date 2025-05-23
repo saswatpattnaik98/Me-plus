@@ -15,7 +15,7 @@ struct EditHabitView: View {
                 
               oldUI
             }
-            .navigationTitle("Edit Habit")
+            .navigationTitle("Edit Task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar{
                 Button{
@@ -32,8 +32,8 @@ struct EditHabitView: View {
     
     var oldUI: some View {
         Form {
-            Section(header: Text("Habit Info")) {
-                TextField("Habit Name", text: $viewModel.habitName)
+            Section(header: Text("Task Info")) {
+                TextField("Task Name", text: $viewModel.habitName)
             }
             
             

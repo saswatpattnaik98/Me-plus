@@ -25,39 +25,29 @@ struct ListView: View {
     @State private var pressedTaskID: UUID? = nil
     let today = Calendar.current.startOfDay(for: Date())
     @State var subtaskDone : Bool = false
+    @State var temptext: String = ""
     
     
     // Add reminder format the task in listview
     @State private var text: String = ""
+    let impactfeebackgenerator = UIImpactFeedbackGenerator(style: .medium)
+    let notificationFeedbackgenerator = UINotificationFeedbackGenerator()
+    let selectionFeedbackgenerator = UISelectionFeedbackGenerator()
+    
+    // Keyboard handling
+    @State private var keyboardHeight: CGFloat = 0
+    @FocusState private var isTextFieldFocused: Bool
     
     var filteredActivities: [Activity] {
         activities.filter {
             Calendar.current.isDate($0.date, inSameDayAs: selectedDate)
         }
     }
-    
     var body: some View {
         NavigationStack{
             ZStack{
                 if filteredActivities.isEmpty {
-                    // Placeholder when no task added ...
-                    VStack(spacing: 12) {
-                        Image("noHabits") // Make sure "noHabits" exists in Assets
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 200, height: 200)
-                            .opacity(0.8)
-                        
-                        Text("Top athletes follow 'Top Heaviness'")
-                            .font(.system(size: 15))
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                        
-                        Text("1.⁠ ⁠More on Mon, Tue, Wed\n2.⁠ ⁠More in morning than evening\n3.⁠ ⁠⁠Definitely set time for rest")
-                            .font(.caption)
-                            .foregroundStyle(.gray)
-                    }
-                    .padding()
+                    PlaceholderView()
                 }
                 List{
                     Section{
@@ -76,17 +66,15 @@ struct ListView: View {
                                 }
                                 VStack(alignment: .leading){
                                     if activity.isRescheduled{
-                                        Text("Missed from yesterday")
+                                        Text("Missed")
                                             .font(.caption)
                                             .foregroundColor(.red)
-                                            .italic()
                                     }
                                     else{
                                         if !activity.subtasks.isEmpty{
-                                            Text("\(activity.subtasks.count) subtasks ")
+                                            Text("\(activity.subtasks.count) subtasks" + (activity.isRepeating ? " • Repeating" : ""))
                                                 .font(.system(size: 9))
-                                            
-                                        }else{
+                                        } else {
                                             Text("Anytime")
                                                 .font(.system(size: 9))
                                                 .strikethrough(activity.isCompleted,pattern: .solid, color: .black)
@@ -101,8 +89,8 @@ struct ListView: View {
                                     else{
                                         Text(activity.name)
                                             .fontWeight(.semibold)
-                                            .font(.system(size: 12))
                                             .strikethrough(activity.isCompleted,pattern: .solid, color: .black)
+                                            .font(.system(size: 15))
                                     }
                                 }
                                 Spacer()
@@ -110,6 +98,7 @@ struct ListView: View {
                                 
                                 // Button to mark task as done...
                                 Button(action: {
+                                    impactfeebackgenerator.impactOccurred()
                                     toggleCompleted(for: activity)
                                     onHabitCompleted?()
                                 }) {
@@ -120,7 +109,7 @@ struct ListView: View {
                                 .buttonStyle(.borderless)
                                 .disabled(!isToday)
                             }
-                            .padding(22)
+                            .padding(EdgeInsets(top: 25, leading: 25, bottom: 25, trailing: 15))
                             .background(activity.color.opacity(0.2))
                             .foregroundColor(.black)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -132,6 +121,7 @@ struct ListView: View {
                                 pressedTaskID = activity.id
                                 passtheIDofHabit = activity.id
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                    selectionFeedbackgenerator.selectionChanged()
                                     openAddHabit = true
                                     selectedHabitName = activity.name
                                     pressedTaskID = nil
@@ -139,85 +129,126 @@ struct ListView: View {
                             }
                             .swipeActions(edge: .trailing) {
                                 if !activity.isCompleted {
-                                    Button {
-                                        deleteAllFutureTasks(for: activity.baseID, from: activity.date)
-                                    } label: {
-                                        Label("Delete All", systemImage: "trash.slash")
+                                    if activity.isRepeating{
+                                        Button {
+                                            deleteAllFutureTasks(for: activity.baseID, from: activity.date)
+                                        } label: {
+                                            Text("Delete All")
+                                        }
+                                        .tint(.orange)
+                                        Button{
+                                            deleteSingleActivity(activity: activity)
+                                        }label:{
+                                            Text("Delete")
+                                        }.tint(.red)
+                                    }else{
+                                        Button{
+                                            deleteSingleActivity(activity: activity)
+                                        }label:{
+                                            Text("Delete")
+                                        }.tint(.red)
                                     }
-                                    .tint(.orange)
-                                    Button{
-                                        deleteSingleActivity(activity: activity)
-                                    }label:{
-                                        Label("Delete",systemImage:"trash")
-                                    }.tint(.red)
                                 }
                             }
                             .listRowSeparator(.hidden) // Hide separator for this row
-                            .listRowInsets(EdgeInsets(top: 3, leading: 35, bottom: 3, trailing: 35)) // Add some spacing between items
+                            .listRowInsets(EdgeInsets(top: 2, leading: 15, bottom: 2, trailing: 15)) // Add some spacing between items
                         }// HStack
-                        if Calendar.current.isDate(selectedDate, inSameDayAs: Date()) {
-                            HStack {
-                                VStack {
-                                    TextField("Add Task", text: $text)
-                                        .onSubmit {
-                                            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                                            guard !trimmed.isEmpty else { return }
-
-                                            let activity = Activity(name: trimmed, date: Date.now, duration: 0, isCompleted: false)
-                                            modelContext.insert(activity)
-                                            text = ""
-                                        }
-                                }
-
-                                Image(systemName: "circle.dotted")
-                            }
-                            .padding(EdgeInsets(top: 15, leading: 50, bottom: 15, trailing: 26))
-                            .background(Color.blue.opacity(0.2))
-                            .foregroundColor(.black)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .listRowInsets(EdgeInsets(top: 1, leading: 35, bottom: 1, trailing: 35))
-                           // .listRowSeparator(.hidden)
-                           // .listRowBackground(Color.clear)
-                        }
+                        
                     }// Section of the lists
+                    .padding(2)
                     .listSectionSeparator(.hidden) // Hide section separators
                 }// List
                 .scrollIndicators(.hidden)
                 .scrollContentBackground(.hidden)
+                .background(Color.clear)
                 .listStyle(PlainListStyle()) // Use PlainListStyle to help remove default styling
                 .environment(\.defaultMinListRowHeight, 0) // Minimize default row height
                 .padding(.top, -1)
-            }
-            .toolbar {
-                ToolbarItem(placement: .bottomBar) {
-                    HStack {
-                        Spacer()
-                        Button {
-                            showEditHabit = true
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 50, weight: .thin))
-                                .foregroundColor(.indigo)
+                .padding(.bottom, keyboardHeight > 0 ? keyboardHeight + 10 : 60) // Adjust based on keyboard
+                
+                VStack {
+                    Spacer()
+                    if selectedDate >= Calendar.current.startOfDay(for: Date()) {
+                        HStack {
+                            Spacer()
+                            Button {
+                                showEditHabit = true
+                                selectionFeedbackgenerator.selectionChanged()
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 55))
+                                    .foregroundColor(.indigo)
+                                    .shadow(radius: 4)
+                            }
+                            .padding(.trailing, 15)
+                            .padding(.bottom, Calendar.current.isDateInToday(selectedDate) ? 5 : 0)
+                            .animation(.default, value: selectedDate)
+                        }
+                    }
+                    HStack{
+                        if selectedDate >= Calendar.current.startOfDay(for: Date()) {
+                            HStack {
+                                TextField("Add Task", text: $text)
+                                    .fontWeight(.bold)
+                                    .focused($isTextFieldFocused)
+                                    .onSubmit {
+                                        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                        guard !trimmed.isEmpty else { return }
+                                        selectionFeedbackgenerator.selectionChanged()
+                                        withAnimation{
+                                            let activity = Activity(name: trimmed, date: Date.now, duration: 0, isCompleted: false)
+                                            modelContext.insert(activity)
+                                            text = ""
+                                        }
+                                        isTextFieldFocused = false // Dismiss keyboard after submission
+                                    }
+                            }
+                            .padding(EdgeInsets(top: 10, leading: 50, bottom: 12, trailing: 10))
+                            .foregroundColor(.black)
+                            .background(
+                                Color.gray.opacity(0.2),
+                              in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                         }
                     }
                 }
+                .padding(.bottom, keyboardHeight > 0 ? keyboardHeight - 85 : 20)
+                .animation(.easeInOut(duration: 0.3), value: keyboardHeight)
+                
             }
             .sheet(isPresented: $showEditHabit) {
-                PreloadedTaskView()
+                PreloadedTaskView(selectedDate: $selectedDate)
             }
             .sheet(isPresented: $openAddHabit) {
                 if let selectedActivity = activities.first(where: { $0.id == passtheIDofHabit }) {
                     BottomSheetEditView(activity: selectedActivity)
-
+                    
                 } else {
                     Text("Activity not found.")
                 }
             }
         }// NavigationStack
+        // Keyboard observers
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    keyboardHeight = keyboardFrame.height
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeInOut) {
+                keyboardHeight = 0
+            }
+        }
     }
     // Function to be called when task is completed ...
     private func toggleCompleted(for activity: Activity) {
         activity.isCompleted = true
+        if activity.subtasks.count > 0{
+            activity.subtasks.forEach { $0.isCompleted = true }
+        }
         notificationManager.cancelNotification(for: activity.id)
         alarmManager.stopAlarm(for: activity.id)
         try? modelContext.save()
@@ -241,9 +272,9 @@ struct ListView: View {
     // Delete tasks that are created for repeat ...
     func deleteAllFutureTasks(for baseID: UUID?, from date: Date) {
         guard let baseID = baseID else {
-               print("Cannot delete tasks with nil baseID")
-               return
-           }
+            print("Cannot delete tasks with nil baseID")
+            return
+        }
         guard !activities.isEmpty else {
             print("No activities to delete.")
             return
