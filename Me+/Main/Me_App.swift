@@ -10,6 +10,7 @@ import SwiftData
 
 @main
 struct Me_App: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var alarmManager = AlarmManager.shared
         init() {
             // Request permissions on app launch
@@ -20,6 +21,7 @@ struct Me_App: App {
         WindowGroup {
             ContentView()
                 .environmentObject(alarmManager)
+                .preferredColorScheme(.light)
         }
         .modelContainer(for: [Activity.self])
     }
