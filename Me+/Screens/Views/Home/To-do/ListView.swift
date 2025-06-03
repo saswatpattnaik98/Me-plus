@@ -42,10 +42,8 @@ struct ListView: View {
     
     // Animation states - Fixed to prevent loops
     @State private var animateCompletion: UUID? = nil
-    @State private var celebrationParticles: [CelebrationParticle] = []
     @State private var showCelebration = false
     @State private var newTaskAnimation: UUID? = nil
-    @State private var floatingElements: [FloatingElement] = []
     @State private var backgroundGlow = false
     @State private var pulseScale: CGFloat = 1.0
     @State private var animationTimer: Timer?
@@ -59,7 +57,7 @@ struct ListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                
+                AnimatedBackground()
                 if filteredActivities.isEmpty {
                     PlaceholderView()
                         .scaleEffect(pulseScale)
@@ -103,6 +101,7 @@ struct ListView: View {
                     .padding(2)
                     .listSectionSeparator(.hidden)
                 }
+                .listRowSeparator(.hidden)
                 .scrollIndicators(.hidden)
                 .scrollContentBackground(.hidden)
                 .background(Color.clear)
@@ -168,7 +167,6 @@ struct ListView: View {
     }
     
     // MARK: - Animation Helper Functions
-    
     private func startPulseAnimation() {
         pulseScale = 1.05
         withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
@@ -184,31 +182,12 @@ struct ListView: View {
     
     private func setupInitialAnimations() {
         backgroundGlow = true
-        startFloatingElements()
     }
     
     private func cleanupAnimations() {
         animationTimer?.invalidate()
         animationTimer = nil
         backgroundGlow = false
-        floatingElements.removeAll()
-        celebrationParticles.removeAll()
-    }
-    
-    private func startFloatingElements() {
-        floatingElements.removeAll()
-        for _ in 0..<5 {
-            let element = FloatingElement(
-                id: UUID(),
-                position: CGPoint(
-                    x: CGFloat.random(in: 0...UIScreen.main.bounds.width),
-                    y: CGFloat.random(in: 0...UIScreen.main.bounds.height)
-                ),
-                size: CGFloat.random(in: 20...40),
-                opacity: Double.random(in: 0.1...0.3)
-            )
-            floatingElements.append(element)
-        }
     }
     
     // MARK: - Event Handlers
@@ -297,7 +276,6 @@ struct ListView: View {
             showBronzeStar = activities.contains { $0.isCompleted }
         }
     }
-    
     private func deleteSingleActivity(activity: Activity) {
         AlarmManager.shared.stopAlarm(for: activity.id)
         notificationManager.cancelNotification(for: activity.id)
@@ -345,28 +323,20 @@ struct ListView: View {
         }
     }
 }
-
-
-
-
-
-
-//struct AnimatedBackground: View {
-//    var body: some View {
-//        LinearGradient(
-//            colors: [
-//                Color.blue.opacity(0.05),
-//                Color.purple.opacity(0.05),
-//                Color.indigo.opacity(0.05)
-//            ],
-//            startPoint: .topLeading,
-//            endPoint: .bottomTrailing
-//        )
-//        .ignoresSafeArea()
-//    }
-//}
-
-
+struct AnimatedBackground: View {
+    var body: some View {
+        LinearGradient(
+            colors: [
+                Color.blue.opacity(0.05),
+                Color.purple.opacity(0.05),
+                Color.indigo.opacity(0.05)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
+    }
+}
 // MARK: - Extension for Calendar
 
 extension Date {
