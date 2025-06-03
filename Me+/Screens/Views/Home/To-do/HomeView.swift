@@ -1,10 +1,8 @@
 import SwiftUI
 import SwiftData
-
 struct HomeView: View {
     // MARK: - Properties
     @Environment(\.modelContext) private var context
-    
     // Streak related properties
     @AppStorage("streakCount") private var storedStreakCount: Int = 0
     @AppStorage("lastStreakUpdateDate") private var lastStreakUpdateDate: String = ""
@@ -13,7 +11,6 @@ struct HomeView: View {
     @AppStorage("streakResetToday") private var streakResetToday: Bool = false
     
     @State private var streaknumber: Int = 0
-    
     // UI related properties
     @State private var showGraphicalCalendar = false
     @State private var dragOffset: CGFloat = 0
@@ -26,14 +23,12 @@ struct HomeView: View {
     @Query var activities: [Activity]
     let notificationfeedbackgenerator = UINotificationFeedbackGenerator()
     
-    
     func hasCompletedActivity(on date: Date) -> Bool {
         let calendar = Calendar.current
         return activities.contains { activity in
             calendar.isDate(activity.date, inSameDayAs: date) && activity.isCompleted
         }
     }
-    
     private var weeks: [[Date]] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -437,7 +432,6 @@ struct HomeView: View {
             checkAndUpdateStreakOnFirstCompletion()
         }
     }
-    
     // Update streak when first activity is completed in a day
     func checkAndUpdateStreakOnFirstCompletion(){
         let calendar = Calendar.current
@@ -464,14 +458,15 @@ struct HomeView: View {
     }
 }
 extension Date {
-    func startOfWeek(using calendar: Calendar = .current) -> Date {
-        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
-        return calendar.date(from: components) ?? self
+    var displayTime: String {
+        self.formatted(.dateTime.hour().minute())
     }
 }
 extension Date {
-    var displayTime: String {
-        self.formatted(.dateTime.hour().minute())
+    func startOfWeek() -> Date {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
+        return calendar.date(from: components) ?? self
     }
 }
 

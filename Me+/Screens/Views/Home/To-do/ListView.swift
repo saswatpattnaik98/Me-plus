@@ -323,30 +323,6 @@ struct ListView: View {
         }
     }
 }
-struct AnimatedBackground: View {
-    var body: some View {
-        LinearGradient(
-            colors: [
-                Color.blue.opacity(0.05),
-                Color.purple.opacity(0.05),
-                Color.indigo.opacity(0.05)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
-    }
-}
-// MARK: - Extension for Calendar
-
-extension Date {
-    func startOfWeek() -> Date {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
-        return calendar.date(from: components) ?? self
-    }
-}
-
 #Preview {
     let modelContainer = try! ModelContainer(for: Activity.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     let context = modelContainer.mainContext
