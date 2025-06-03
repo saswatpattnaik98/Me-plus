@@ -21,7 +21,7 @@ class AddhabitViewModel:ObservableObject{
     @Published var endTime = Date()
     @Published var time: Date = Date().addingTimeInterval(15 * 60)
     
-    @Published var selectedColor: Color = Color.green.opacity(0.3)
+    @Published var selectedColor: Color = Color.green
     
     static let notificationManager = LocalNotificationManager()  // Singleton instance
      init() {}
