@@ -1,3 +1,7 @@
+https://github.com/user-attachments/assets/5b2367a7-4393-4896-b60f-2014d8579d5f
+
+
+
 Me+ – Your Personal Daily Checklist & Reminder App
 
 Me+ is a beautifully designed iOS app built to help you stay on track with your daily goals. Whether you're building habits, managing tasks,
@@ -22,5 +26,5 @@ UserNotifications – For local notifications and alarm scheduling.
 Core Animation & View Transitions – To deliver smooth, responsive UI feedback.
 
 
-https://github.com/user-attachments/assets/5b2367a7-4393-4896-b60f-2014d8579d5f
+
 
