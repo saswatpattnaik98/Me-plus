@@ -20,7 +20,5 @@ SwiftUI – For modern declarative UI and animation.
 SwiftData – Apple’s native framework for data persistence.
 UserNotifications – For local notifications and alarm scheduling.
 Core Animation & View Transitions – To deliver smooth, responsive UI feedback.
+https://github.com/user-attachments/assets/5b2367a7-4393-4896-b60f-2014d8579d5f
 
-
-![Simulator Screenshot - iPhone 16 Pro - 2025-05-15 at 22 13 32](https://github.com/user-attachments/assets/ec7f5ade-807b-4045-9ef4-c51653fd5a5f)
-![Simulator Screenshot - iPhone 16 Pro - 2025-05-15 at 22 13 40](https://github.com/user-attachments/assets/395fd99b-2b57-427c-a5a9-e11916dfde50)
