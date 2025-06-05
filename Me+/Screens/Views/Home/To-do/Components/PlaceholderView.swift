@@ -10,11 +10,9 @@ struct PlaceholderView: View {
     let timer = Timer.publish(every: 4.0, on: .main, in: .common).autoconnect()
     
     // Tips array for subtle text animation
-    private let tips = [
-        "1.⁠ ⁠More on Mon, Tue, Wed\n2.⁠ ⁠More in morning than evening\n3.⁠ ⁠⁠Definitely set time for rest",
-        "1.⁠ ⁠Start small, build momentum\n2.⁠ ⁠Consistency beats perfection\n3.⁠ ⁠⁠Celebrate small wins",
-        "1.⁠ ⁠Focus on 3 key habits\n2.⁠ ⁠Track progress daily\n3.⁠ ⁠⁠Rest is productive too"
-    ]
+    private let tips = ["1.⁠ ⁠More on Mon, Tue, Wed",
+                        "2.⁠ ⁠More in morning than evening",
+                        "3.⁠ ⁠⁠Definitely set time for rest"]
     
     var body: some View {
         VStack(spacing: 16) {

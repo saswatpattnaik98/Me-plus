@@ -12,9 +12,27 @@ class Activity: ObservableObject {
     var isCompleted: Bool
     var isRescheduled: Bool = false
     @Relationship var subtasks: [Subtask] // Corrected: `subtasks` instead of `subtask`
+    
+    // NEW: Add reminder properties
+    var reminderType: String
+    var reminderTime: Date
+    var repeatOption: String // Store as String to match RepeatOption.rawValue
 
-    // Updated initializer to accept subtasks
-    init(id: UUID = UUID(), baseID: UUID? = nil,name: String, date: Date, duration: Int, colorName: String = Activity.randomColorName(), isCompleted: Bool = false, isRescheduled: Bool = false, subtasks: [Subtask] = []) {
+    // Updated initializer to accept all properties including reminder settings
+    init(
+        id: UUID = UUID(),
+        baseID: UUID? = nil,
+        name: String,
+        date: Date,
+        duration: Int,
+        colorName: String = Activity.randomColorName(),
+        isCompleted: Bool = false,
+        isRescheduled: Bool = false,
+        subtasks: [Subtask] = [],
+        reminderType: String = "No reminder",
+        reminderTime: Date = Date(),
+        repeatOption: String = "none"
+    ) {
         self.id = id
         self.baseID = baseID
         self.name = name
@@ -23,7 +41,11 @@ class Activity: ObservableObject {
         self.colorName = colorName
         self.isCompleted = isCompleted
         self.isRescheduled = isRescheduled
-        self.subtasks = subtasks // Now accepting subtasks
+        self.subtasks = subtasks
+        // Initialize reminder properties
+        self.reminderType = reminderType
+        self.reminderTime = reminderTime
+        self.repeatOption = repeatOption
     }
 
     static func randomColorName() -> String {
@@ -45,25 +67,30 @@ class Activity: ObservableObject {
         }
     }
     
+    // MARK: - Computed Properties for Reminder Settings
+    
+    /// Convert stored repeatOption string back to RepeatOption enum
+    var repeatOptionEnum: RepeatOption {
+        return RepeatOption(rawValue: repeatOption) ?? .None
+    }
+    
     /// Computed property to check if this task is part of a repeating series
-        var isRepeating: Bool {
-            return baseID != nil
-        }
+    var isRepeating: Bool {
+        return baseID != nil
+    }
+    
+    /// Function to check if this task is repeating (alternative approach)
+    func isTaskRepeating() -> Bool {
+        return baseID != nil
+    }
+    
+    /// Check if this activity has other instances (past or future)
+    /// You would call this with your modelContext
+    func hasOtherInstances(in activities: [Activity]) -> Bool {
+        guard let baseID = self.baseID else { return false }
         
-        /// Function to check if this task is repeating (alternative approach)
-        func isTaskRepeating() -> Bool {
-            return baseID != nil
+        return activities.contains { activity in
+            activity.baseID == baseID && activity.id != self.id
         }
-        
-        /// Check if this activity has other instances (past or future)
-        /// You would call this with your modelContext
-        func hasOtherInstances(in activities: [Activity]) -> Bool {
-            guard let baseID = self.baseID else { return false }
-            
-            return activities.contains { activity in
-                activity.baseID == baseID && activity.id != self.id
-            }
-        }
+    }
 }
-
-

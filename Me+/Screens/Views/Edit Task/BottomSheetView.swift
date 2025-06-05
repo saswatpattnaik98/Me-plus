@@ -63,8 +63,16 @@ struct BottomSheetEditView: View {
             }
         }
         .onAppear {
-            subtaskCount = activity.subtasks.count
-            subtaskCompleted = activity.subtasks.filter { $0.isCompleted }.count
+            refreshData()
+        }
+        // Add this to refresh when returning from edit view
+        .onChange(of: showEditHabit) { _ in
+            if !showEditHabit {
+                // Refresh data when returning from edit view
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    refreshData()
+                }
+            }
         }
     }
     
@@ -225,7 +233,7 @@ struct BottomSheetEditView: View {
         )
     }
     
-    // MARK: - Subtasks Section
+    // MARK: - Fixed Subtasks Section
     private var subtasksSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -242,8 +250,9 @@ struct BottomSheetEditView: View {
             
             if !activity.subtasks.isEmpty {
                 LazyVStack(spacing: 12) {
-                    ForEach(activity.subtasks.indices, id: \.self) { index in
-                        subtaskRow(for: activity.subtasks[index], at: index)
+                    // Use ID-based ForEach instead of index-based
+                    ForEach(activity.subtasks, id: \.id) { subtask in
+                        subtaskRowSafe(for: subtask)
                     }
                 }
             } else {
@@ -257,29 +266,35 @@ struct BottomSheetEditView: View {
                 .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
         )
     }
+
     
     // MARK: - Subtask Row
-    private func subtaskRow(for task: Subtask, at index: Int) -> some View {
+    private func subtaskRowSafe(for task: Subtask) -> some View {
         HStack(spacing: 12) {
             // Checkbox button
             Button {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                    if !task.isCompleted {
-                        task.isCompleted = true
-                        subtaskCompleted += 1
-                        checkAllSubtaskCompleted()
+                    // Find the task in the array safely and toggle its completion
+                    if let index = activity.subtasks.firstIndex(where: { $0.id == task.id }) {
+                        let wasCompleted = activity.subtasks[index].isCompleted
                         
-                        // Trigger completion animation
-                        animateCompletion = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            animateCompletion = false
-                        }
-                        
-                        // Show confetti if all tasks completed
-                        if activity.isCompleted {
-                            showConfetti = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                showConfetti = false
+                        if !wasCompleted {
+                            activity.subtasks[index].isCompleted = true
+                            subtaskCompleted += 1
+                            checkAllSubtaskCompleted()
+                            
+                            // Trigger completion animation
+                            animateCompletion = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                animateCompletion = false
+                            }
+                            
+                            // Show confetti if all tasks completed
+                            if activity.isCompleted {
+                                showConfetti = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    showConfetti = false
+                                }
                             }
                         }
                     }
@@ -337,10 +352,8 @@ struct BottomSheetEditView: View {
                         )
                 )
         )
-        .onChange(of: task.isCompleted) { _ in
-            checktaskCompleted(task: task)
-        }
     }
+
     
     // MARK: - Empty Subtasks View
     private var emptySubtasksView: some View {
@@ -370,12 +383,9 @@ struct BottomSheetEditView: View {
                 isActive: $showEditHabit,
                 label: { EmptyView() }
             )
-            
             Button {
-                editHabitViewModel.habitID = activity.id
-                editHabitViewModel.habitName = activity.name
-                editHabitViewModel.date = activity.date
-                editHabitViewModel.subtasks = activity.subtasks
+                // Refresh view model before navigating - this ensures we have the latest data
+                refreshData()
                 showEditHabit = true
             } label: {
                 HStack(spacing: 12) {
@@ -414,57 +424,38 @@ struct BottomSheetEditView: View {
         }
     }
     
-    func checktaskCompleted(task: Subtask) {
-        if task.isCompleted {
-            // subtaskCompleted is now updated in the button action
+    // MARK: - Updated Helper Functions
+    private func refreshData() {
+        // Update subtask counts safely
+        subtaskCount = activity.subtasks.count
+        subtaskCompleted = activity.subtasks.filter { $0.isCompleted }.count
+        
+        // Update view model with current activity data
+        editHabitViewModel.habitID = activity.id
+        editHabitViewModel.habitName = activity.name
+        editHabitViewModel.date = activity.date
+        editHabitViewModel.tempduration = activity.duration
+        
+        // Create a copy of subtasks to avoid reference issues
+        editHabitViewModel.subtasks = activity.subtasks.map { originalSubtask in
+            Subtask(name: originalSubtask.name, isCompleted: originalSubtask.isCompleted)
         }
     }
     
-    func checkAllSubtaskCompleted() {
+    private func checktaskCompleted(task: Subtask) {
+        // This function is no longer needed as we handle completion in the button action
+        // But keeping it for compatibility if used elsewhere
+        if task.isCompleted {
+            // Logic handled in button action now
+        }
+    }
+
+    private func checkAllSubtaskCompleted() {
         if activity.subtasks.allSatisfy({ $0.isCompleted }) {
             activity.isCompleted = true
         }
     }
 }
-
-// MARK: - Confetti View
-struct ConfettiView: View {
-    @State private var animate = false
-    
-    var body: some View {
-        ZStack {
-            ForEach(0..<50, id: \.self) { _ in
-                Circle()
-                    .fill(Color.random)
-                    .frame(width: 8, height: 8)
-                    .offset(
-                        x: animate ? .random(in: -200...200) : 0,
-                        y: animate ? .random(in: -400...400) : 0
-                    )
-                    .opacity(animate ? 0 : 1)
-                    .animation(
-                        .easeOut(duration: 2)
-                        .delay(.random(in: 0...0.5)),
-                        value: animate
-                    )
-            }
-        }
-        .onAppear {
-            animate = true
-        }
-    }
-}
-
-extension Color {
-    static var random: Color {
-        Color(
-            red: .random(in: 0...1),
-            green: .random(in: 0...1),
-            blue: .random(in: 0...1)
-        )
-    }
-}
-
 // Preview
 #Preview {
     let sampleActivity = Activity(

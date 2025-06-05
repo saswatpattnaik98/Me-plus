@@ -48,16 +48,53 @@ struct ListView: View {
     @State private var pulseScale: CGFloat = 1.0
     @State private var animationTimer: Timer?
     
+    // Celebration view states
+    @State private var showTaskCelebration = false
+    @State private var celebrationTaskName = ""
+    @State private var isFirstTaskOfDay = false
+    @State private var currentStreak = 1
+    
     var filteredActivities: [Activity] {
         activities.filter {
             Calendar.current.isDate($0.date, inSameDayAs: selectedDate)
         }
     }
     
+    // Helper to check if this is the first completed task of the day
+    private var completedTasksToday: Int {
+        filteredActivities.filter { $0.isCompleted }.count
+    }
+    
+    // Helper to calculate current streak (you might want to implement actual streak logic)
+    private func calculateStreak() -> Int {
+        // This is a simplified version - implement your actual streak calculation
+        let calendar = Calendar.current
+        var streak = 0
+        var currentDate = selectedDate
+        
+        // Count consecutive days with completed tasks going backwards
+        while true {
+            let tasksForDate = activities.filter {
+                calendar.isDate($0.date, inSameDayAs: currentDate) && $0.isCompleted
+            }
+            
+            if tasksForDate.isEmpty {
+                break
+            }
+            
+            streak += 1
+            currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate) ?? currentDate
+            
+            // Limit to prevent infinite loop
+            if streak > 365 { break }
+        }
+        
+        return max(streak, 1)
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack {
-                AnimatedBackground()
                 if filteredActivities.isEmpty {
                     PlaceholderView()
                         .scaleEffect(pulseScale)
@@ -68,7 +105,6 @@ struct ListView: View {
                             stopPulseAnimation()
                         }
                 }
-                
                 List {
                     Section {
                         ForEach(Array(filteredActivities.enumerated()), id: \.element.id) { index, activity in
@@ -83,7 +119,7 @@ struct ListView: View {
                                 },
                                 onComplete: {
                                     handleActivityCompletion(activity, at: index)
-                                }
+                                },selectedDate:$selectedDate
                             )
                             .swipeActions(edge: .trailing) {
                                 if !activity.isCompleted {
@@ -102,9 +138,9 @@ struct ListView: View {
                     .listSectionSeparator(.hidden)
                 }
                 .listRowSeparator(.hidden)
+               // .listRowBackground(Color.clear)
                 .scrollIndicators(.hidden)
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
+               // .scrollContentBackground(.hidden)
                 .listStyle(PlainListStyle())
                 .environment(\.defaultMinListRowHeight, 0)
                 .padding(.top, -1)
@@ -112,23 +148,6 @@ struct ListView: View {
                 
                 VStack {
                     Spacer()
-                    if selectedDate >= Calendar.current.startOfDay(for: Date()) {
-                        HStack {
-                            Spacer()
-                            AddButtonView(
-                                showEditHabit: showEditHabit,
-                                backgroundGlow: backgroundGlow,
-                                onTap: {
-                                    mediumImpactGenerator.impactOccurred()
-                                    showEditHabit = true
-                                    selectionFeedbackgenerator.selectionChanged()
-                                }
-                            )
-                            .padding(.trailing, 20)
-                            .padding(.bottom, Calendar.current.isDateInToday(selectedDate) ? 8 : 0)
-                        }
-                    }
-                    
                     if selectedDate >= Calendar.current.startOfDay(for: Date()) {
                         AddTaskTextField(
                             text: $text,
@@ -138,7 +157,7 @@ struct ListView: View {
                         .padding(.horizontal, 16)
                     }
                 }
-                .padding(.bottom, keyboardHeight > 0 ? keyboardHeight - 85 : 25)
+                .padding(.bottom, keyboardHeight > 0 ? keyboardHeight - 38 : 25)
                 .animation(.easeInOut(duration: 0.3), value: keyboardHeight)
             }
             .sheet(isPresented: $showEditHabit) {
@@ -150,6 +169,15 @@ struct ListView: View {
                 } else {
                     Text("Activity not found.")
                 }
+            }
+            .fullScreenCover(isPresented: $showTaskCelebration) {
+                TaskCompletionCelebrationView(
+                    taskName: celebrationTaskName,
+                    isFirstTaskOfDay: isFirstTaskOfDay,
+                    currentStreak: currentStreak,
+                    isPresented: $showTaskCelebration
+                )
+                .background(.clear)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
@@ -214,10 +242,21 @@ struct ListView: View {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             heavyImpactGenerator.impactOccurred()
+            
+            // Check if this is the first task of the day before toggling
+            let wasFirstTask = completedTasksToday == 0
+            
             toggleCompleted(for: activity)
             onHabitCompleted?()
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            // Prepare celebration data
+            celebrationTaskName = activity.name
+            isFirstTaskOfDay = wasFirstTask
+            currentStreak = calculateStreak()
+            
+            // Show celebration after a short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                showTaskCelebration = true
                 animateCompletion = nil
             }
         }
@@ -276,6 +315,7 @@ struct ListView: View {
             showBronzeStar = activities.contains { $0.isCompleted }
         }
     }
+    
     private func deleteSingleActivity(activity: Activity) {
         AlarmManager.shared.stopAlarm(for: activity.id)
         notificationManager.cancelNotification(for: activity.id)
@@ -293,7 +333,7 @@ struct ListView: View {
     
     func deleteAllFutureTasks(for baseID: UUID?, from date: Date) {
         guard let baseID = baseID else {
-            print("Cannot delete tasks with nil baseID")
+            print("Cannot delete tasks with baseID")
             return
         }
         guard !activities.isEmpty else {
@@ -323,6 +363,7 @@ struct ListView: View {
         }
     }
 }
+
 #Preview {
     let modelContainer = try! ModelContainer(for: Activity.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
     let context = modelContainer.mainContext

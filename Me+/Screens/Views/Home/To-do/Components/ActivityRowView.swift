@@ -15,6 +15,7 @@ struct ActivityRowView: View {
     let isNewTask: Bool
     let onTap: () -> Void
     let onComplete: () -> Void
+    @Binding var selectedDate: Date
     
     var body: some View {
         HStack {
@@ -62,7 +63,9 @@ struct ActivityRowView: View {
             removal: .move(edge: .leading).combined(with: .opacity)
         ))
         .onTapGesture {
-            onTap()
+            if selectedDate >= Calendar.current.startOfDay(for: Date()) {
+                onTap()
+            }
         }
         .animation(.easeInOut(duration: 0.2), value: isPressed)
     }

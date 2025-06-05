@@ -270,7 +270,8 @@ class AddhabitViewModel:ObservableObject{
     }
 
     // Helper to insert activity
-    private func insertActivityIfNeeded(on date: Date, base: Activity,baseID: UUID ,context: ModelContext) {
+    // Also update the insertActivityIfNeeded method in AddhabitViewModel:
+    private func insertActivityIfNeeded(on date: Date, base: Activity, baseID: UUID, context: ModelContext) {
         let newActivity = Activity(
             id: UUID(),
             baseID: baseID,
@@ -278,7 +279,11 @@ class AddhabitViewModel:ObservableObject{
             date: date,
             duration: base.duration,
             isCompleted: false,
-            subtasks: base.subtasks
+            subtasks: base.subtasks,
+            // NEW: Include reminder properties
+            reminderType: base.reminderType,
+            reminderTime: base.reminderTime,
+            repeatOption: base.repeatOption
         )
         context.insert(newActivity)
     }

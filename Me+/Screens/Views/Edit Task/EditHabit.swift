@@ -6,37 +6,29 @@ struct EditHabitView: View {
     @Environment(\.dismiss) private var dismiss
     
     @ObservedObject var viewModel: EditHabitViewModel
+    
     @State private var showingDeleteAlert = false
     
     var body: some View {
         NavigationStack {
             ZStack {
                 // Beautiful gradient background
-                LinearGradient(
-                    colors: [
-                        Color.mint.opacity(0.3),
-                        Color.cyan.opacity(0.2),
-                        Color.white.opacity(0.8)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-                
+                EditTaskBG()
+    
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 24) {
                         // Header with cute icon
                         headerSection
                         
                         // Main content
-                        VStack(spacing: 20) {
+                        VStack(spacing: 10) {
                             taskInfoSection
                             reminderSection
                             subtasksSection
                         }
-                        .padding(.bottom, 100) // Extra padding for safe area
+                        .padding(.bottom, 80) // Extra padding for safe area
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 0)
                     .padding(.top, 10)
                 }
             }
@@ -105,9 +97,10 @@ struct EditHabitView: View {
     // MARK: - Reminder Section
     private var reminderSection: some View {
         sectionContainer(title: "Reminder Settings", icon: "bell.circle.fill") {
-            VStack(spacing: 16) {
+            VStack(spacing: 10) {
                 // Date picker
                 datePickerRow
+                    .foregroundStyle(.black)
                 
                 // Reminder type picker
                 reminderTypeRow
@@ -116,6 +109,9 @@ struct EditHabitView: View {
                 if viewModel.reminderType != "No reminder" {
                     timePickerRow
                 }
+                
+                // Reminder Time Row (NEW)
+                reminderTimeRow
                 
                 // Repeat picker
                 repeatPickerRow
@@ -127,15 +123,104 @@ struct EditHabitView: View {
     private var subtasksSection: some View {
         sectionContainer(title: "Subtasks", icon: "list.bullet.circle.fill") {
             VStack(spacing: 12) {
-                // Existing subtasks
-                ForEach(viewModel.subtasks.indices, id: \.self) { index in
-                    subtaskRow(at: index)
+                // Use ID-based ForEach for better stability
+                ForEach(viewModel.subtasks, id: \.id) { subtask in
+                    subtaskRowById(subtask: subtask)
                 }
                 
                 // Add new subtask
                 addSubtaskRow
             }
         }
+    }
+
+    // MARK: - ID-based Subtask Row (Recommended Approach)
+    private func subtaskRowById(subtask: Subtask) -> some View {
+        HStack(spacing: 12) {
+            iconContainer(systemName: "minus.circle", color: .mint, size: 20)
+            
+            TextField("Subtask", text: Binding(
+                get: {
+                    subtask.name
+                },
+                set: { newValue in
+                    // Find and update the subtask safely
+                    if let index = viewModel.subtasks.firstIndex(where: { $0.id == subtask.id }) {
+                        viewModel.subtasks[index].name = newValue
+                    }
+                }
+            ))
+            .textFieldStyle(.plain)
+            .font(.body)
+            
+            if viewModel.subtasks.count > 1 {
+                Button(role: .destructive) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        viewModel.removeSubtask(subtask)
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    // MARK: - Alternative Index-based Implementation (Fallback)
+    private var subtasksSectionIndexBased: some View {
+        sectionContainer(title: "Subtasks", icon: "list.bullet.circle.fill") {
+            VStack(spacing: 12) {
+                // Safe index-based approach with enumerated
+                ForEach(Array(viewModel.subtasks.enumerated()), id: \.element.id) { index, subtask in
+                    subtaskRowSafe(subtask: subtask, at: index)
+                }
+                
+                // Add new subtask
+                addSubtaskRow
+            }
+        }
+    }
+
+    private func subtaskRowSafe(subtask: Subtask, at index: Int) -> some View {
+        HStack(spacing: 12) {
+            iconContainer(systemName: "minus.circle", color: .mint, size: 20)
+            
+            TextField("Subtask", text: Binding(
+                get: {
+                    // Safe array access with bounds checking
+                    guard index >= 0 && index < viewModel.subtasks.count else {
+                        return subtask.name // Fallback to original subtask name
+                    }
+                    return viewModel.subtasks[index].name
+                },
+                set: { newValue in
+                    // Safe array mutation with bounds checking
+                    guard index >= 0 && index < viewModel.subtasks.count else {
+                        return
+                    }
+                    viewModel.subtasks[index].name = newValue
+                }
+            ))
+            .textFieldStyle(.plain)
+            .font(.body)
+            
+            if viewModel.subtasks.count > 1 {
+                Button(role: .destructive) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        viewModel.removeSubtaskSafely(at: index)
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
     
     // MARK: - Individual Rows
@@ -185,6 +270,34 @@ struct EditHabitView: View {
             DatePicker("", selection: $viewModel.time, displayedComponents: .hourAndMinute)
                 .labelsHidden()
                 .scaleEffect(0.9)
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+    }
+    
+    // MARK: - NEW: Reminder Time Row
+    private var reminderTimeRow: some View {
+        let isReminderEnabled = viewModel.reminderType != "No reminder"
+        
+        return HStack(spacing: 12) {
+            iconContainer(systemName: "clock.fill", color: .mint)
+                .opacity(isReminderEnabled ? 1.0 : 0.5)
+            
+            Text("Remind me @")
+                .font(.body)
+                .fontWeight(.medium)
+                .opacity(isReminderEnabled ? 1.0 : 0.5)
+            
+            Spacer()
+            
+            Picker("", selection: $viewModel.reminderTime) {
+                ForEach(ReminderOffset.allCases) { option in
+                    Text(option.rawValue).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            .disabled(!isReminderEnabled)
+            .tint(isReminderEnabled ? .mint : .gray)
         }
         .padding(16)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -244,6 +357,9 @@ struct EditHabitView: View {
             TextField("Add new subtask", text: $viewModel.subtaskName)
                 .textFieldStyle(.plain)
                 .font(.body)
+                .onSubmit {
+                    viewModel.addSubtask()
+                }
             
             Button(action: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {

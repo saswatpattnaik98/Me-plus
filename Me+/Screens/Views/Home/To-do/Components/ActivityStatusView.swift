@@ -23,10 +23,27 @@ struct ActivityStatusView: View {
                     .foregroundColor(.red)
             }
         } else {
-            if !activity.subtasks.isEmpty {
+            // Check if task has both subtasks and reminder time
+            if !activity.subtasks.isEmpty && activity.reminderType != "No reminder" {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(activity.subtasks.count) subtasks" + (activity.isRepeating ? " • Repeating" : ""))
+                        .font(.system(size: 7))
+                    Text("Scheduled: \(activity.reminderTime.displayTime)")
+                        .font(.system(size: 7))
+                }
+            }
+            // Check if task has only reminder time (no subtasks)
+            else if activity.reminderType != "No reminder" {
+                Text("Scheduled: \(activity.reminderTime.displayTime)")
+                    .font(.system(size: 9))
+            }
+            // Check if task has only subtasks (no reminder time)
+            else if !activity.subtasks.isEmpty {
                 Text("\(activity.subtasks.count) subtasks" + (activity.isRepeating ? " • Repeating" : ""))
                     .font(.system(size: 9))
-            } else {
+            }
+            // No time and no subtasks - show "Anytime"
+            else {
                 Text("Anytime")
                     .font(.system(size: 9))
                     .strikethrough(activity.isCompleted, pattern: .solid, color: .black)
