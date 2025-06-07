@@ -68,6 +68,7 @@ class LocalNotificationManager {
                     print("---")
                 }
             }
+            // This is for total pending notication that are going to push
             print("📊 Total pending: \(requests.count)")
             print("===============================\n")
         }
