@@ -1,5 +1,6 @@
 
 import SwiftUI
+import SwiftData
 
 struct ActivityRowView: View {
     let activity: Activity
@@ -10,6 +11,9 @@ struct ActivityRowView: View {
     let onTap: () -> Void
     let onComplete: () -> Void
     @Binding var selectedDate: Date
+    let onDeleteSingle: () -> Void
+    let Today: Date = Calendar.current.startOfDay(for: Date())
+    @Environment(\.modelContext) var modelContext
     
     var body: some View {
         HStack {
@@ -59,6 +63,13 @@ struct ActivityRowView: View {
         .onTapGesture {
             if selectedDate >= Calendar.current.startOfDay(for: Date()) {
                 onTap()
+            }else {
+                withAnimation{
+                    let newActivity = Activity(name: activity.name, date: Today, duration: 0,movedFromPast: true)
+                    modelContext.insert(newActivity)
+                    onDeleteSingle()
+                    try? modelContext.save()
+                }
             }
         }
         .animation(.easeInOut(duration: 0.2), value: isPressed)

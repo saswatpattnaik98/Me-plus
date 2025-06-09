@@ -22,7 +22,18 @@ struct ActivityStatusView: View {
                     .font(.system(size: 10, weight: .medium, design: .rounded))
                     .foregroundColor(.red)
             }
-        } else {
+        } else if activity.movedFromPast{
+            HStack(spacing: 4){
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: 8))
+                    .foregroundColor(.blue)
+                    .symbolEffect(.bounce, value: isAnimatingCompletion)
+                Text("Moved from past")
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundColor(.blue)
+            }
+        }
+        else{
             // Check if task has both subtasks and reminder time
             if !activity.subtasks.isEmpty && activity.reminderType != "No reminder" {
                 VStack(alignment: .leading, spacing: 2) {

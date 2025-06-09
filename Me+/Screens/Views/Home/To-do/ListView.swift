@@ -142,7 +142,7 @@ struct ListView: View {
                                     },
                                     onComplete: {
                                         handleActivityCompletion(activity, at: index)
-                                    },selectedDate:$selectedDate
+                                    },selectedDate:$selectedDate,onDeleteSingle: {deleteSingleActivity(activity: activity)}
                                 )
                                 .swipeActions(edge: .trailing) {
                                     if !activity.isCompleted {

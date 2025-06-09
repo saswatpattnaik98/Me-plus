@@ -17,6 +17,7 @@ class Activity: ObservableObject {
     var reminderType: String
     var reminderTime: Date
     var repeatOption: String // Store as String to match RepeatOption.rawValue
+    var movedFromPast: Bool = false
 
     // Updated initializer to accept all properties including reminder settings
     init(
@@ -31,7 +32,8 @@ class Activity: ObservableObject {
         subtasks: [Subtask] = [],
         reminderType: String = "No reminder",
         reminderTime: Date = Date(),
-        repeatOption: String = "none"
+        repeatOption: String = "none",
+        movedFromPast: Bool = false
     ) {
         self.id = id
         self.baseID = baseID
@@ -46,6 +48,7 @@ class Activity: ObservableObject {
         self.reminderType = reminderType
         self.reminderTime = reminderTime
         self.repeatOption = repeatOption
+        self.movedFromPast = movedFromPast
     }
 
     static func randomColorName() -> String {
