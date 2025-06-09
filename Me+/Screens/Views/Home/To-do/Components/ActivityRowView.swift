@@ -1,4 +1,3 @@
-
 import SwiftUI
 import SwiftData
 
@@ -15,6 +14,12 @@ struct ActivityRowView: View {
     let Today: Date = Calendar.current.startOfDay(for: Date())
     @Environment(\.modelContext) var modelContext
     
+    // State for alert
+    @State private var showMoveTaskAlert = false
+    
+    // Query to get all activities for deletion logic
+    @Query var allActivities: [Activity]
+    
     var body: some View {
         HStack {
             ActivityIconView(activity: activity, isNewTask: isNewTask)
@@ -29,7 +34,8 @@ struct ActivityRowView: View {
             CompletionButtonView(
                 activity: activity,
                 isAnimatingCompletion: isAnimatingCompletion,
-                onComplete: onComplete,selectedDate: $selectedDate
+                onComplete: onComplete,
+                selectedDate: $selectedDate
             )
         }
         .padding(EdgeInsets(top: 25, leading: 25, bottom: 25, trailing: 15))
@@ -63,16 +69,100 @@ struct ActivityRowView: View {
         .onTapGesture {
             if selectedDate >= Calendar.current.startOfDay(for: Date()) {
                 onTap()
-            }else {
-                withAnimation{
-                    let newActivity = Activity(name: activity.name, date: Today, duration: 0,movedFromPast: true)
-                    modelContext.insert(newActivity)
-                    onDeleteSingle()
-                    try? modelContext.save()
-                }
+            } else {
+                // Show alert for past tasks
+                showMoveTaskAlert = true
             }
         }
         .animation(.easeInOut(duration: 0.2), value: isPressed)
+        .alert("Move Task to Today?", isPresented: $showMoveTaskAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Yes, Move to Today") {
+                moveTaskToToday()
+            }
+        } message: {
+            Text("Do you want to move '\(activity.name)' to today? This will remove all past instances of this task and add it to today.")
+        }
+    }
+    
+    private func moveTaskToToday() {
+        withAnimation {
+            // First, check if this task already exists today to avoid duplicates
+            let existingTodayTask = allActivities.first { task in
+                Calendar.current.isDate(task.date, inSameDayAs: Today) &&
+                task.name == activity.name &&
+                !task.isCompleted
+            }
+            
+            if existingTodayTask == nil{
+                // Create new activity for today only if it doesn't exist
+                let newActivity = Activity(
+                    name: activity.name,
+                    date: Today,
+                    duration: activity.duration,
+                    isCompleted: false,
+                    movedFromPast: true
+                )
+                
+                // Copy any additional properties if they exist
+                if let baseID = activity.baseID {
+                    newActivity.baseID = baseID
+                }
+                
+                // Copy subtasks if any
+                if !activity.subtasks.isEmpty {
+                    for subtask in activity.subtasks {
+                        let newSubtask = Subtask(
+                            name: subtask.name,
+                            isCompleted: false
+                        )
+                        newActivity.subtasks.append(newSubtask)
+                    }
+                }
+                
+                modelContext.insert(newActivity)
+                print("Created new task for today: \(activity.name)")
+            } else {
+                print("Task already exists today, not creating duplicate")
+            }
+            
+            // Delete all instances of this task from past dates (including carried-over ones)
+            deleteAllMissingTaskInstances()
+            
+            try? modelContext.save()
+        }
+    }
+    
+    private func deleteAllMissingTaskInstances() {
+        let calendar = Calendar.current
+        
+        // Find all activities with the same name or baseID that are incomplete and in the past
+        var tasksToDelete: [Activity] = []
+        
+        if let baseID = activity.baseID {
+            // If task has baseID, delete all tasks with same baseID that are incomplete and in the past
+            tasksToDelete = allActivities.filter { task in
+                task.baseID == baseID &&
+                !task.isCompleted &&
+                task.date < Today
+            }
+        } else {
+            // If no baseID, find tasks with same name that are incomplete and in the past
+            // This handles carried-over tasks that might not have baseID
+            tasksToDelete = allActivities.filter { task in
+                task.name == activity.name &&
+                !task.isCompleted &&
+                task.date < Today
+            }
+        }
+        
+        // Delete all found tasks (including the current one since it's already in the filter)
+        for task in tasksToDelete {
+            // Cancel any notifications/alarms for these tasks
+            LocalNotificationManager().cancelNotification(for: task.id)
+            AlarmManager.shared.stopAlarm(for: task.id)
+            
+            modelContext.delete(task)
+        }
     }
 }
-

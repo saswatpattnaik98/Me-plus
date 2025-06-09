@@ -288,7 +288,7 @@ class AddhabitViewModel: ObservableObject {
     }
 
     // MARK: - Helper to insert activity
-    private func insertActivityIfNeeded(on date: Date, base: Activity, baseID: UUID, context: ModelContext) {
+    private func insertActivityIfNeeded(on date: Date, base: Activity, baseID: UUID, context: ModelContext){
         // Create deep copies of subtasks instead of sharing references
         let copiedSubtasks = base.subtasks.map { originalSubtask in
             Subtask(

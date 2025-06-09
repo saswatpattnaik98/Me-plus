@@ -294,32 +294,71 @@ struct HomeView: View {
         return formatter.string(from: date)
     }
     
-    // MARK: - Task Management Functions
+    // Updated carry-over function in HomeView
     private func carryOverUncompletedActivities(context: ModelContext) {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
         
+        // Get all uncompleted activities from yesterday and before
         let fetchDescriptor = FetchDescriptor<Activity>(
             predicate: #Predicate { activity in
                 activity.isCompleted == false &&
                 activity.isRescheduled == false &&
-                activity.date >= yesterday && activity.date < today
+                activity.date < today
             }
         )
         
         if let oldActivities = try? context.fetch(fetchDescriptor) {
+            // Group activities by name or baseID to avoid duplicates
+            var uniqueActivities: [String: Activity] = [:]
+            
             for activity in oldActivities {
+                let key = activity.baseID?.uuidString ?? activity.name
+                
+                // Keep the most recent version of each unique task
+                if let existingActivity = uniqueActivities[key] {
+                    if activity.date > existingActivity.date {
+                        uniqueActivities[key] = activity
+                    }
+                } else {
+                    uniqueActivities[key] = activity
+                }
+            }
+            
+            // Create new activities for today from unique tasks
+            for (_, activity) in uniqueActivities {
                 let newActivity = Activity(
                     name: activity.name,
                     date: today,
-                    duration: 0,
+                    duration: activity.duration,
                     isCompleted: false,
                     isRescheduled: true
                 )
+                
+                // Copy baseID if it exists
+                if let baseID = activity.baseID {
+                    newActivity.baseID = baseID
+                }
+                
+                // Copy subtasks if any
+                if !activity.subtasks.isEmpty {
+                    for subtask in activity.subtasks {
+                        let newSubtask = Subtask(
+                            name: subtask.name,
+                            isCompleted: false
+                        )
+                        newActivity.subtasks.append(newSubtask)
+                    }
+                }
+                
                 context.insert(newActivity)
+            }
+            
+            // Mark all old activities as rescheduled instead of deleting
+            for activity in oldActivities {
                 activity.isRescheduled = true
             }
+            
             try? context.save()
         }
     }
