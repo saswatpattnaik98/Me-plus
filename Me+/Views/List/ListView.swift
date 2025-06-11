@@ -126,7 +126,10 @@ struct ListView: View {
                     }
                     
                     List {
+                        Section{
                             ListTopCardView()
+                        }
+                        .listSectionSeparator(.hidden)
                         Section {
                             ForEach(Array(filteredActivities.sorted { a, b in // undone tasks first, then done
                                     (!a.isCompleted && b.isCompleted)
@@ -163,7 +166,8 @@ struct ListView: View {
                         .padding(2)
                         .listSectionSeparator(.hidden)
                     }
-                    .listRowSeparator(.hidden)
+                    
+                   // .listRowSeparator(.hidden)
                     .scrollIndicators(.hidden)
                     .listStyle(PlainListStyle())
                     .environment(\.defaultMinListRowHeight, 0)
