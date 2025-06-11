@@ -126,6 +126,7 @@ struct ListView: View {
                     }
                     
                     List {
+                            ListTopCardView()
                         Section {
                             ForEach(Array(filteredActivities.sorted { a, b in // undone tasks first, then done
                                     (!a.isCompleted && b.isCompleted)

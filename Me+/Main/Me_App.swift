@@ -12,14 +12,26 @@ import SwiftData
 struct Me_App: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var alarmManager = AlarmManager.shared
-        init() {
-            // Request permissions on app launch
-            AlarmManager.shared.requestNotificationPermission()
-        }
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var showOnboardingTest = false
+    init() {
+        // Request permissions on app launch
+        AlarmManager.shared.requestNotificationPermission()
+    }
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
+                .fullScreenCover(isPresented: $showOnboardingTest) {
+                   Survey()
+                }
+                .onAppear {
+                    // Show test only on first launch
+                    if !hasCompletedOnboarding {
+                        showOnboardingTest = true
+                    }
+                }
+                .ignoresSafeArea()
                 .environmentObject(alarmManager)
                 .preferredColorScheme(.light)
         }

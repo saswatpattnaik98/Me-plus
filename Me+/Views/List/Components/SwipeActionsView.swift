@@ -15,16 +15,6 @@ struct SwipeActionsView: View {
     var body: some View {
         Group {
             if activity.isRepeating {
-                Button(action: onDeleteAll) {
-                    VStack(spacing: 4) {
-                        Image(systemName: "trash.fill")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("Delete All")
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                }
-                .tint(.orange)
-                
                 Button(action: onDeleteSingle) {
                     VStack(spacing: 4) {
                         Image(systemName: "minus.circle.fill")
@@ -34,6 +24,16 @@ struct SwipeActionsView: View {
                     }
                 }
                 .tint(.red)
+                
+                Button(action: onDeleteAll) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("Delete All")
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                }
+                .tint(.orange)
             } else {
                 Button(action: onDeleteSingle) {
                     VStack(spacing: 4) {
