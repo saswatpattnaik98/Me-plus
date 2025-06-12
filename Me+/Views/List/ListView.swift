@@ -365,7 +365,7 @@ struct ListView: View {
         }
     }
     
-    func deleteAllFutureTasks(for baseID: UUID?, from date: Date) {
+    func deleteAllFutureTasks(for baseID: UUID?, from date: Date){
         guard let baseID = baseID else {
             print("Cannot delete tasks with baseID")
             return
@@ -382,17 +382,21 @@ struct ListView: View {
             return
         }
         
-        withAnimation(.easeInOut(duration: 0.3)) {
-            for task in futureTasks {
-                alarmManager.stopAlarm(for: task.id)
-                notificationManager.cancelNotification(for: task.id)
-                modelContext.delete(task)
-            }
-            
-            do {
-                try modelContext.save()
-            } catch {
-                print("Error saving after deletion: \(error)")
+        for task in futureTasks {
+            alarmManager.stopAlarm(for: task.id)
+            notificationManager.cancelNotification(for: task.id)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                for task in futureTasks {
+                    modelContext.delete(task)
+                }
+                
+                do {
+                    try modelContext.save()
+                } catch {
+                    print("Error saving after deletion: \(error)")
+                }
             }
         }
     }

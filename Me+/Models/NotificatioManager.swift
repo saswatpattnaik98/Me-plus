@@ -36,15 +36,11 @@ class LocalNotificationManager {
 
     // Cancel only the notification for this activity
     func cancelNotification(for id: UUID) {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id.uuidString])
-        print("🗑️ Cancelled notification for ID: \(id)")
+     let centre = UNUserNotificationCenter.current()
+        centre.removePendingNotificationRequests(withIdentifiers: [id.uuidString])
+        centre.removeDeliveredNotifications(withIdentifiers: [id.uuidString])
     }
-
-    // Use only for global resets/debug
-    func cancelAllNotifications() {
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        print("🗑️ All notifications cancelled")
-    }
+    
     
     // Debug method to check what's actually scheduled
     func checkPendingNotifications() {

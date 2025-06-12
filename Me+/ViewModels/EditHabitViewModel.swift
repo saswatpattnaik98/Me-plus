@@ -42,6 +42,31 @@ class EditHabitViewModel: AddhabitViewModel {
     }
     
     func updateActivity(in context: ModelContext) {
+        // CRITICAL FIX: Cancel existing notifications/alarms BEFORE scheduling new ones
+        let notificationManager = LocalNotificationManager()
+        let alarmManager = AlarmManager()
+        
+        // Cancel old notifications/alarms for this specific activity
+        notificationManager.cancelNotification(for: originalActivity.id)
+        alarmManager.stopAlarm(for: originalActivity.id)
+        
+        // If this activity has a baseID, cancel all related notifications too
+        if let baseID = originalActivity.baseID {
+            // Get all activities with the same baseID from context
+            let descriptor = FetchDescriptor<Activity>(
+                predicate: #Predicate<Activity> { $0.baseID == baseID }
+            )
+            
+            if let relatedActivities = try? context.fetch(descriptor) {
+                print("🚫 Cancelling notifications for \(relatedActivities.count) related activities")
+                for activity in relatedActivities {
+                    notificationManager.cancelNotification(for: activity.id)
+                    alarmManager.stopAlarm(for: activity.id)
+                }
+            }
+        }
+        
+        // Update the activity properties
         originalActivity.name = habitName
         originalActivity.date = date
         originalActivity.duration = tempduration
@@ -53,11 +78,21 @@ class EditHabitViewModel: AddhabitViewModel {
         originalActivity.reminderTime = time
         originalActivity.repeatOption = selectedRepeat.rawValue
         
-        // FIX: Store reminderOffset in UserDefaults temporarily
+        // 🔥 CRITICAL FIX: Set baseID for the original activity when making it repeating
+        if selectedRepeat != .None {
+            originalActivity.baseID = originalActivity.id  // Set baseID to its own ID (isRepeating will automatically be true)
+            print("✅ Set original activity baseID to: \(originalActivity.id)")
+            print("✅ isRepeating is now: \(originalActivity.isRepeating)")
+        } else {
+            originalActivity.baseID = nil                  // Clear baseID if not repeating (isRepeating will automatically be false)
+            print("✅ Cleared baseID, isRepeating is now: \(originalActivity.isRepeating)")
+        }
+        
+        // Store reminderOffset in UserDefaults temporarily
         let key = "reminderOffset_\(originalActivity.id.uuidString)"
         UserDefaults.standard.set(reminderTime.rawValue, forKey: key)
         
-        // Optional: handle alarm/notification updates
+        // NOW schedule new notifications/alarms with updated properties
         if reminderType == "Notification" {
             if let baseDate = combineDateAndTime(date: date, time: time) {
                 scheduleNotification(for: baseDate, activityId: habitID)
@@ -68,12 +103,25 @@ class EditHabitViewModel: AddhabitViewModel {
             }
         }
         
+        // Handle repeated activities
         if selectedRepeat != .None {
             createRepeatedActivities(baseActivity: originalActivity, baseID: habitID, context: context)
         }
         
         // Persist changes
-        try? context.save()
+        do {
+            try context.save()
+            print("✅ Activity updated and saved successfully")
+            print("   - Original activity baseID: \(originalActivity.baseID?.uuidString ?? "nil")")
+            print("   - Original activity isRepeating: \(originalActivity.isRepeating)")
+            
+            // Debug: Check what notifications are scheduled after update
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                notificationManager.checkPendingNotifications()
+            }
+        } catch {
+            print("❌ Error saving updated activity: \(error)")
+        }
     }
     
     override func createRepeatedActivities(baseActivity: Activity, baseID: UUID, context: ModelContext) {
@@ -116,12 +164,10 @@ class EditHabitViewModel: AddhabitViewModel {
         }
     }
 
-    // FIXED: Helper to insert activity with proper subtask copying
     private func insertActivityIfNeeded(on date: Date, base: Activity, baseID: UUID, context: ModelContext) {
-        // FIX: Create deep copies of subtasks instead of sharing references
+        // Create deep copies of subtasks instead of sharing references
         let copiedSubtasks = base.subtasks.map { originalSubtask in
             Subtask(
-                //id: UUID(), // New unique ID for each copy
                 name: originalSubtask.name,
                 isCompleted: originalSubtask.isCompleted
             )
@@ -135,14 +181,13 @@ class EditHabitViewModel: AddhabitViewModel {
             duration: base.duration,
             colorName: base.colorName,
             isCompleted: false,
-            subtasks: copiedSubtasks, // Use copied subtasks
-            // Include all reminder properties when creating repeated activities
+            subtasks: copiedSubtasks,
             reminderType: base.reminderType,
             reminderTime: base.reminderTime,
             repeatOption: base.repeatOption
         )
         
-        // Store reminderOffset for the new activity too
+        // Store reminderOffset for the new activity
         let baseKey = "reminderOffset_\(base.id.uuidString)"
         let newKey = "reminderOffset_\(newActivity.id.uuidString)"
         if let baseOffset = UserDefaults.standard.string(forKey: baseKey) {
@@ -150,6 +195,20 @@ class EditHabitViewModel: AddhabitViewModel {
         }
         
         context.insert(newActivity)
+        
+        // CRITICAL FIX: Schedule notifications/alarms for the new repeated activity
+        let notificationManager = LocalNotificationManager()
+        let alarmManager = AlarmManager()
+        
+        if base.reminderType == "Notification" {
+            if let reminderDate = combineDateAndTime(date: date, time: base.reminderTime) {
+                scheduleNotification(for: reminderDate, activityId: newActivity.id)
+            }
+        } else if base.reminderType == "Alarm" {
+            if let reminderDate = combineDateAndTime(date: date, time: base.reminderTime) {
+                scheduleAlarm(for: newActivity.id, baseDate: reminderDate)
+            }
+        }
     }
     
     // RECOMMENDED: ID-based subtask removal (most stable)
