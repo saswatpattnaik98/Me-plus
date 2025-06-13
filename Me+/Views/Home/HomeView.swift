@@ -19,7 +19,6 @@ struct HomeView: View {
     @State private var showGraphicalCalendar = false
     @State private var dragOffset: CGFloat = 0
     @State private var currentWeekStart: Date = Calendar.current.startOfDay(for: Date()).startOfWeek()
-    @State private var openManageTasks = false
     @State private var selectedDate: Date = Date()
     @State private var showBronzeStar: Bool = false
     @State private var streakView = false
@@ -256,9 +255,6 @@ struct HomeView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .zIndex(2)
             }
-        }
-        .sheet(isPresented: $openManageTasks){
-            ManageTasks()
         }
         .sheet(isPresented: $streakView){
             StreakExpandView(streakCount: $streaknumber)
