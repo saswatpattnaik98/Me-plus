@@ -134,7 +134,7 @@ struct ActivityRowView: View {
     }
     
     private func deleteAllMissingTaskInstances(){
-        let calendar = Calendar.current
+        _ = Calendar.current
         // Find all activities with the same name or baseID that are incomplete and in the past
         var tasksToDelete: [Activity] = []
         

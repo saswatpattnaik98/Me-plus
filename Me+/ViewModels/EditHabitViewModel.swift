@@ -197,8 +197,8 @@ class EditHabitViewModel: AddhabitViewModel {
         context.insert(newActivity)
         
         // CRITICAL FIX: Schedule notifications/alarms for the new repeated activity
-        let notificationManager = LocalNotificationManager()
-        let alarmManager = AlarmManager()
+//        let notificationManager = LocalNotificationManager()
+//        let alarmManager = AlarmManager()
         
         if base.reminderType == "Notification" {
             if let reminderDate = combineDateAndTime(date: date, time: base.reminderTime) {

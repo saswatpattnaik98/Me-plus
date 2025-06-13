@@ -66,7 +66,7 @@ struct BottomSheetEditView: View {
             refreshData()
         }
         // Add this to refresh when returning from edit view
-        .onChange(of: showEditHabit) { _ in
+        .onChange(of: showEditHabit) {
             if !showEditHabit {
                 // Refresh data when returning from edit view
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
