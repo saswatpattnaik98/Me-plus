@@ -98,18 +98,15 @@ struct ListView: View {
             let tasksForDate = activities.filter {
                 calendar.isDate($0.date, inSameDayAs: currentDate) && $0.isCompleted
             }
-            
             if tasksForDate.isEmpty {
                 break
             }
-            
             streak += 1
             currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate) ?? currentDate
             
             // Limit to prevent infinite loop
             if streak > 365 { break }
         }
-        
         return max(streak, 1)
     }
     
@@ -130,7 +127,11 @@ struct ListView: View {
                     
                     List {
                         Section {
-                            ForEach(Array(filteredActivities.enumerated()), id: \.element.id) { index, activity in
+                            ForEach(Array(filteredActivities.sorted { a, b in // undone tasks first, then done
+                                    (!a.isCompleted && b.isCompleted)
+                                }.enumerated())  // now we get (index, activity)
+                              ,id: \.element.id)     // still identifying by the activity’s UUID
+                            { index, activity in
                                 ActivityRowView(
                                     activity: activity,
                                     index: index,
