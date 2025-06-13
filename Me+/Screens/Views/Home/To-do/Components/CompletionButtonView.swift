@@ -11,9 +11,11 @@ struct CompletionButtonView: View {
     let activity: Activity
     let isAnimatingCompletion: Bool
     let onComplete: () -> Void
+    @Binding var selectedDate: Date
     
-    private var isToday: Bool {
-        Calendar.current.isDate(activity.date, inSameDayAs: Date())
+    private var canDo: Bool {
+        Calendar.current.isDate(activity.date, inSameDayAs: Date()) ||
+        activity.date >= Calendar.current.startOfDay(for: Date())
     }
     
     var body: some View {
@@ -41,7 +43,7 @@ struct CompletionButtonView: View {
             }
         }
         .buttonStyle(.borderless)
-        .disabled(!isToday)
-        .opacity(isToday ? 1.0 : 0.5)
+        .disabled(!canDo)
+        .opacity(!canDo ? 1.0 : 0.5)
     }
 }

@@ -1,8 +1,10 @@
 import SwiftUI
 import SwiftData
+
 struct HomeView: View {
     // MARK: - Properties
     @Environment(\.modelContext) private var context
+    
     // Streak related properties
     @AppStorage("streakCount") private var storedStreakCount: Int = 0
     @AppStorage("lastStreakUpdateDate") private var lastStreakUpdateDate: String = ""
@@ -11,6 +13,8 @@ struct HomeView: View {
     @AppStorage("streakResetToday") private var streakResetToday: Bool = false
     
     @State private var streaknumber: Int = 0
+    @State private var hasInitialized: Bool = false // Prevent multiple initializations
+    
     // UI related properties
     @State private var showGraphicalCalendar = false
     @State private var dragOffset: CGFloat = 0
@@ -19,6 +23,10 @@ struct HomeView: View {
     @State private var selectedDate: Date = Date()
     @State private var showBronzeStar: Bool = false
     @State private var streakView = false
+    
+    // Cache the weeks to avoid recalculation
+    @State private var cachedWeeks: [[Date]] = []
+    @State private var lastWeekCalculationDate: Date = Date()
     
     @Query var activities: [Activity]
     let notificationfeedbackgenerator = UINotificationFeedbackGenerator()
@@ -29,7 +37,9 @@ struct HomeView: View {
             calendar.isDate(activity.date, inSameDayAs: date) && activity.isCompleted
         }
     }
-    private var weeks: [[Date]] {
+    
+    // Cached weeks computation
+    private func calculateWeeks() -> [[Date]] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let startDate = calendar.date(byAdding: .weekOfYear, value: -2, to: today.startOfWeek())!
@@ -47,6 +57,17 @@ struct HomeView: View {
         return weekDates
     }
     
+    // Update cached weeks when needed
+    private func updateWeeksIfNeeded() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        // Only recalculate if date has changed or cache is empty
+        if cachedWeeks.isEmpty || !calendar.isDate(lastWeekCalculationDate, inSameDayAs: today) {
+            cachedWeeks = calculateWeeks()
+            lastWeekCalculationDate = today
+        }
+    }
     
     // Body Property
     var body: some View {
@@ -70,9 +91,11 @@ struct HomeView: View {
                             Spacer()
                             // The Streak Button on Home screen
                             Button{
-                                checkStreakResetIfNeeded()
+                                // Only check streak reset when user manually opens streak view
+                                if !hasInitialized {
+                                    checkStreakResetIfNeeded()
+                                }
                                 streakView.toggle()
-                                
                             }label: {
                                 HStack {
                                     Image(systemName: "flame.fill")
@@ -90,81 +113,30 @@ struct HomeView: View {
                                 )
                             }
                         }
-                        .padding(.top, 52) //space below notch
-                        .padding(.horizontal)//Space so buttons wont feels away from the alignment
-                        // Table view of the calendar in scroll ...
+                        .padding(.top, 52)
+                        .padding(.horizontal)
+                        
+                        // Table view of the calendar in scroll with week navigation
                         TabView(selection: $currentWeekStart) {
-                            ForEach(weeks, id: \.[0]) { week in
-                                HStack(spacing: 5) {
-                                    ForEach(week, id: \.self) { date in
-                                        let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                                        
-                                        VStack(spacing: 4) {
-                                            Text(dayOfWeek(from: date))
-                                                .font(.caption)
-                                                .foregroundColor(isSelected ? .black : .secondary)
-                                                .fontWeight(isSelected ? .bold : .regular)
-                                            
-                                            let hasStreak = hasCompletedActivity(on: date)
-                                            ZStack {
-                                                let isToday = Calendar.current.isDateInToday(date)
-                                                if hasStreak {
-                                                    Image("streak")
-                                                        .resizable()
-                                                        .frame(width: 36, height: 36)
-                                                } else {
-                                                    if isToday{
-                                                        Circle()
-                                                            .fill(Color.white)
-                                                            .frame(width: 36, height: 36)
-                                                    } else {
-                                                        Circle()
-                                                            .fill(isSelected ? .white : Color.secondary.opacity(0.1))
-                                                            .frame(width: 36, height: 36)
-                                                    }
-                                                    
-                                                    Text(dayNumber(from: date))
-                                                        .font(.caption)
-                                                        .fontWeight(.bold)
-                                                        .foregroundColor(isSelected ? .black : .gray)
-                                                }
-                                            }
-                                            
-                                        }
-                                        
-                                        .frame(width: 47, height: 71)
-                                        // For that effect of light apprearance even when today is not selected
-                                        .background(
-                                            Group {
-                                                let isToday = Calendar.current.isDateInToday(date)
-                                                let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                                                
-                                                if isSelected {
-                                                    RoundedRectangle(cornerRadius: 58)
-                                                        .fill(Color.purple.opacity(0.3))
-                                                } else if isToday {
-                                                    RoundedRectangle(cornerRadius: 58)
-                                                        .fill(Color.purple.opacity(0.09)) // duller version for today
-                                                } else {
-                                                    Color.clear
-                                                }
-                                            }
-                                        )
-                                        .onTapGesture {
-                                            selectedDate = date
-                                        }
-                                    }
-                                }
+                            ForEach(cachedWeeks, id: \.[0]) { week in
+                                WeekRowView(
+                                    week: week,
+                                    selectedDate: $selectedDate,
+                                    hasCompletedActivity: hasCompletedActivity
+                                )
                                 .tag(week[0])
                             }
                         }
                         .tabViewStyle(.page(indexDisplayMode: .never))
                         .frame(height: 90)
+                        .onChange(of: currentWeekStart) { oldWeek, newWeek in
+                            // When user swipes to change week, update selectedDate to same day of week
+                            updateSelectedDateForNewWeek(oldWeek: oldWeek, newWeek: newWeek)
+                        }
                         
                         // Today Text or date text on upperright Corner of Homeview
                         HStack(spacing: 0){
                             Spacer()
-                            //  Spacer()
                             VStack(spacing: 2) {
                                 Capsule()
                                     .fill(Color.gray.opacity(0.6))
@@ -199,7 +171,6 @@ struct HomeView: View {
                                             )
                                     }
                                 } else {
-                                    // Empty view with same size as the button
                                     Text("Today")
                                         .font(.footnote)
                                         .padding(.horizontal, 12)
@@ -208,12 +179,12 @@ struct HomeView: View {
                                 }
                             }
                         }
-                        
                     }
                     .gesture(
                         DragGesture()
                             .onChanged { value in
-                                if value.translation.height > 30 {
+                                // Only handle vertical drag for calendar
+                                if abs(value.translation.height) > abs(value.translation.width) && value.translation.height > 30 {
                                     withAnimation(.easeInOut) {
                                         showGraphicalCalendar = true
                                     }
@@ -227,14 +198,21 @@ struct HomeView: View {
                     onTaskCompleted()
                 })
             }
-            // Modifier to update the schdeduled task
+            // Modified onAppear to prevent loops
             .onAppear {
-                checkAndCarryOverTasksIfNeeded(context: context)
-                initializeStreakState()
+                // Only run initialization once
+                if !hasInitialized {
+                    updateWeeksIfNeeded()
+                    performInitialSetup()
+                    hasInitialized = true
+                }
+            }
+            .onChange(of: selectedDate) { _, _ in
+                // Update weeks when date changes significantly
+                updateWeeksIfNeeded()
             }
             
-            
-            // Graphical Calendar Overlay ------------
+            // Graphical Calendar Overlay
             if showGraphicalCalendar {
                 Color.black.opacity(0.1)
                     .ignoresSafeArea()
@@ -277,16 +255,22 @@ struct HomeView: View {
                 )
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .zIndex(2)
-            }// if conditon showCalendar
-        }// ZStack
-        
+            }
+        }
         .sheet(isPresented: $openManageTasks){
             ManageTasks()
         }
         .sheet(isPresented: $streakView){
             StreakExpandView(streakCount: $streaknumber)
         }
-    }// body
+    }
+    
+    // MARK: - Helper Functions
+    private func performInitialSetup() {
+        // Run all initialization tasks once
+        checkAndCarryOverTasksIfNeeded(context: context)
+        initializeStreakState()
+    }
     
     private func dateLabel(for date: Date) -> String {
         let calendar = Calendar.current
@@ -309,13 +293,13 @@ struct HomeView: View {
         formatter.dateFormat = "d"
         return formatter.string(from: date)
     }
-    // These are the functions for rescheduling
+    
+    // MARK: - Task Management Functions
     private func carryOverUncompletedActivities(context: ModelContext) {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
         
-        // Only carry over tasks from yesterday that haven't been completed and haven't been rescheduled yet
         let fetchDescriptor = FetchDescriptor<Activity>(
             predicate: #Predicate { activity in
                 activity.isCompleted == false &&
@@ -326,7 +310,6 @@ struct HomeView: View {
         
         if let oldActivities = try? context.fetch(fetchDescriptor) {
             for activity in oldActivities {
-                // Create new rescheduled activity for today
                 let newActivity = Activity(
                     name: activity.name,
                     date: today,
@@ -335,12 +318,8 @@ struct HomeView: View {
                     isRescheduled: true
                 )
                 context.insert(newActivity)
-                
-                // Mark the original activity as rescheduled to prevent future carry-overs
                 activity.isRescheduled = true
             }
-            
-            // Save the changes
             try? context.save()
         }
     }
@@ -350,40 +329,15 @@ struct HomeView: View {
         let today = calendar.startOfDay(for: Date())
         let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
         
-        // Only run once per day
         if todayString != lastCheckedDate {
             carryOverUncompletedActivities(context: context)
             lastCheckedDate = todayString
         }
     }
     
-    // Optional: Add a cleanup function to remove old uncompleted tasks
-    private func cleanupOldUncompletedTasks(context: ModelContext) {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: today)!
-        
-        // Remove uncompleted tasks older than 7 days that have been rescheduled
-        let fetchDescriptor = FetchDescriptor<Activity>(
-            predicate: #Predicate { activity in
-                activity.isCompleted == false &&
-                activity.isRescheduled == true &&
-                activity.date < sevenDaysAgo
-            }
-        )
-        
-        if let oldActivities = try? context.fetch(fetchDescriptor) {
-            for activity in oldActivities {
-                context.delete(activity)
-            }
-            try? context.save()
-        }
-    }
+    // MARK: - Streak Management Functions
     func initializeStreakState() {
-        // Load stored streak and update the UI
         streaknumber = storedStreakCount
-        
-        // Check if we need to reset the streak (no activity completed yesterday)
         checkStreakResetIfNeeded()
     }
     
@@ -392,77 +346,166 @@ struct HomeView: View {
         let today = calendar.startOfDay(for: Date())
         let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
         
-        // Only run this check once per day, using a dedicated tracking variable
-        if todayString != lastStreakResetCheckDate {
-            print("Running streak reset check for \(todayString)")
-            
-            // Get yesterday's date
-            let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
-            
-            // Check if any activity was completed yesterday
-            let completedYesterday = activities.contains { activity in
-                calendar.isDate(activity.date, inSameDayAs: yesterday) && activity.isCompleted
-            }
-            
-            // If streak is > 0 and no activity was completed yesterday, reset streak
-            if storedStreakCount > 0 && !completedYesterday {
-                print("Streak reset: No activity completed yesterday")
-                storedStreakCount = 0
-                streaknumber = 0
-                // Mark that streak was reset today so we can increment it when task is completed
-                streakResetToday = true
-            } else {
-                streakResetToday = false
-            }
-            lastStreakResetCheckDate = todayString
+        // Prevent multiple checks per day
+        guard todayString != lastStreakResetCheckDate else { return }
+        
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+        let completedYesterday = activities.contains { activity in
+            calendar.isDate(activity.date, inSameDayAs: yesterday) && activity.isCompleted
         }
+        
+        if storedStreakCount > 0 && !completedYesterday {
+            storedStreakCount = 0
+            streaknumber = 0
+            streakResetToday = true
+        } else {
+            streakResetToday = false
+        }
+        lastStreakResetCheckDate = todayString
     }
-    // Call this when a task is marked as completed
+    
     func onTaskCompleted() {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         
-        // Count completed tasks for today
         let completedTasksToday = activities.filter { activity in
             calendar.isDate(activity.date, inSameDayAs: today) && activity.isCompleted
         }.count
         
-        // If this is the first completed task of the day, update streak
         if completedTasksToday == 1 {
             checkAndUpdateStreakOnFirstCompletion()
         }
     }
-    // Update streak when first activity is completed in a day
+    
     func checkAndUpdateStreakOnFirstCompletion(){
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let todayString = DateFormatter.localizedString(from: today, dateStyle: .short, timeStyle: .none)
         
-        // Check if we already updated streak for today
-        if todayString != lastStreakUpdateDate {
-            // Increment streak and update last update date
-            storedStreakCount += 1
-            lastStreakUpdateDate = todayString
-            streaknumber = storedStreakCount
-            
-            // If streak was reset today, we need to clear the flag since we've now
-            // successfully started a new streak
-            if streakResetToday {
-                streakResetToday = false
+        guard todayString != lastStreakUpdateDate else { return }
+        
+        storedStreakCount += 1
+        lastStreakUpdateDate = todayString
+        streaknumber = storedStreakCount
+        
+        if streakResetToday {
+            streakResetToday = false
+        }
+        
+        notificationfeedbackgenerator.notificationOccurred(.success)
+    }
+    
+    // MARK: - Navigation Functions
+    private func updateSelectedDateForNewWeek(oldWeek: Date, newWeek: Date) {
+        let calendar = Calendar.current
+        
+        // Get the day of week of the currently selected date
+        let dayOfWeek = calendar.component(.weekday, from: selectedDate)
+        
+        // Find the corresponding day in the new week
+        if let newSelectedDate = calendar.dateInterval(of: .weekOfYear, for: newWeek)?.start {
+            // Calculate the same day of week in the new week
+            let daysToAdd = dayOfWeek - 1 // weekday is 1-based, we need 0-based
+            if let updatedDate = calendar.date(byAdding: .day, value: daysToAdd, to: newSelectedDate) {
+                selectedDate = updatedDate
             }
-            
-            print("Streak incremented to: \(streaknumber)")
-            notificationfeedbackgenerator.notificationOccurred(.success)
-            
+        }
+    }
+    
+    private func navigateWeek(direction: Int) {
+        let calendar = Calendar.current
+        if let newDate = calendar.date(byAdding: .weekOfYear, value: direction, to: selectedDate) {
+            selectedDate = newDate
+            currentWeekStart = newDate.startOfWeek()
         }
     }
 }
+
+// MARK: - Separate Week Row Component
+struct WeekRowView: View {
+    let week: [Date]
+    @Binding var selectedDate: Date
+    let hasCompletedActivity: (Date) -> Bool
+    
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(week, id: \.self) { date in
+                let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
+                
+                VStack(spacing: 4) {
+                    Text(dayOfWeek(from: date))
+                        .font(.caption)
+                        .foregroundColor(isSelected ? .black : .secondary)
+                        .fontWeight(isSelected ? .bold : .regular)
+                    
+                    let hasStreak = hasCompletedActivity(date)
+                    ZStack {
+                        let isToday = Calendar.current.isDateInToday(date)
+                        if hasStreak {
+                            Image("streak")
+                                .resizable()
+                                .frame(width: 36, height: 36)
+                        } else {
+                            if isToday{
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 36, height: 36)
+                            } else {
+                                Circle()
+                                    .fill(isSelected ? .white : Color.secondary.opacity(0.1))
+                                    .frame(width: 36, height: 36)
+                            }
+                            
+                            Text(dayNumber(from: date))
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(isSelected ? .black : .gray)
+                        }
+                    }
+                }
+                .frame(width: 47, height: 71)
+                .background(
+                    Group {
+                        let isToday = Calendar.current.isDateInToday(date)
+                        let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
+                        
+                        if isSelected {
+                            RoundedRectangle(cornerRadius: 58)
+                                .fill(Color.purple.opacity(0.3))
+                        } else if isToday {
+                            RoundedRectangle(cornerRadius: 58)
+                                .fill(Color.purple.opacity(0.09))
+                        } else {
+                            Color.clear
+                        }
+                    }
+                )
+                .onTapGesture {
+                    selectedDate = date
+                }
+            }
+        }
+    }
+    
+    private func dayOfWeek(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE"
+        return formatter.string(from: date)
+    }
+    
+    private func dayNumber(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - Extensions
 extension Date {
     var displayTime: String {
         self.formatted(.dateTime.hour().minute())
     }
-}
-extension Date {
+    
     func startOfWeek() -> Date {
         let calendar = Calendar.current
         let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
@@ -474,4 +517,3 @@ extension Date {
     HomeView()
         .preferredColorScheme(.light)
 }
-

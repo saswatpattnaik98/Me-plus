@@ -3,7 +3,7 @@ import SwiftUI
 struct EditDateAddedView: View {
     @Binding var date: Date
     @State private var selectedDayOption = "Today"
-
+    
     let nameDay = ["Today", "Tomorrow", "Next Monday"]
 
     var body: some View {
@@ -12,9 +12,8 @@ struct EditDateAddedView: View {
                 .font(.title)
                 .fontWeight(.bold)
 
-        DatePicker("Pick a date", selection: $date, in: Date()... , displayedComponents: .date)
+            DatePicker("Pick a date", selection: $date, in: Date()... , displayedComponents: .date)
                 .datePickerStyle(.graphical)
-
 
             Picker("Select day", selection: $selectedDayOption) {
                 ForEach(nameDay, id: \.self) { day in
@@ -22,7 +21,7 @@ struct EditDateAddedView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .onChange(of:selectedDayOption){ oldValue,newValue in
+            .onChange(of: selectedDayOption) { oldValue, newValue in
                 updateDate(from: newValue)
             }
         }
@@ -31,26 +30,36 @@ struct EditDateAddedView: View {
 
     func updateDate(from option: String) {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        
+        // FIXED: Preserve the current time components from the existing date
+        let currentTimeComponents = calendar.dateComponents([.hour, .minute, .second], from: date)
+        
+        let today = Date()
+        var newDate: Date
 
         switch option {
         case "Today":
-            date = today
+            newDate = today
 
         case "Tomorrow":
-            if let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) {
-                date = tomorrow
-            }
+            newDate = calendar.date(byAdding: .day, value: 1, to: today) ?? today
 
         case "Next Monday":
-            if let nextMonday = calendar.nextDate(after: today, matching: DateComponents(weekday: 2), matchingPolicy: .nextTime) {
-                date = nextMonday
-            }
+            newDate = calendar.nextDate(after: today, matching: DateComponents(weekday: 2), matchingPolicy: .nextTime) ?? today
 
         default:
-            break
+            return
         }
+        
+        // IMPORTANT: Combine the new date with the existing time components
+        var dateComponents = calendar.dateComponents([.year, .month, .day], from: newDate)
+        dateComponents.hour = currentTimeComponents.hour
+        dateComponents.minute = currentTimeComponents.minute
+        dateComponents.second = currentTimeComponents.second
+        
+        date = calendar.date(from: dateComponents) ?? newDate
     }
+    
     private func dateLabel(for date: Date) -> String {
         let calendar = Calendar.current
 
@@ -67,7 +76,3 @@ struct EditDateAddedView: View {
         }
     }
 }
-#Preview {
-    EditDateAddedView(date: .constant(Date()))
-}
-

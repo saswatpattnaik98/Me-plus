@@ -1,9 +1,3 @@
-//
-//  ActivityRowView.swift
-//  Me+
-//
-//  Created by Hari's Mac on 03.06.2025.
-//
 
 import SwiftUI
 
@@ -31,7 +25,7 @@ struct ActivityRowView: View {
             CompletionButtonView(
                 activity: activity,
                 isAnimatingCompletion: isAnimatingCompletion,
-                onComplete: onComplete
+                onComplete: onComplete,selectedDate: $selectedDate
             )
         }
         .padding(EdgeInsets(top: 25, leading: 25, bottom: 25, trailing: 15))

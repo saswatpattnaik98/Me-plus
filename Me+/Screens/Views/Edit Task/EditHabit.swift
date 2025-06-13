@@ -104,14 +104,11 @@ struct EditHabitView: View {
                 
                 // Reminder type picker
                 reminderTypeRow
-                
+
                 // Time picker (conditional)
                 if viewModel.reminderType != "No reminder" {
                     timePickerRow
                 }
-                
-                // Reminder Time Row (NEW)
-                reminderTimeRow
                 
                 // Repeat picker
                 repeatPickerRow
@@ -236,11 +233,11 @@ struct EditHabitView: View {
     }
     
     private var reminderTypeRow: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             iconContainer(systemName: "bell", color: .orange)
             
-            Text("Reminder Type")
-                .font(.body)
+            Text("Reminder")
+                .font(.subheadline)
                 .fontWeight(.medium)
             
             Spacer()
@@ -262,7 +259,7 @@ struct EditHabitView: View {
             iconContainer(systemName: "clock", color: .blue)
             
             Text("Time")
-                .font(.body)
+                .font(.subheadline)
                 .fontWeight(.medium)
             
             Spacer()
@@ -284,7 +281,7 @@ struct EditHabitView: View {
                 .opacity(isReminderEnabled ? 1.0 : 0.5)
             
             Text("Remind me @")
-                .font(.body)
+                .font(.subheadline)
                 .fontWeight(.medium)
                 .opacity(isReminderEnabled ? 1.0 : 0.5)
             
@@ -308,7 +305,7 @@ struct EditHabitView: View {
             iconContainer(systemName: "repeat", color: .purple)
             
             Text("Repeat")
-                .font(.body)
+                .font(.subheadline)
                 .fontWeight(.medium)
             
             Spacer()
@@ -446,7 +443,7 @@ struct EditHabitView: View {
             iconContainer(systemName: icon, color: .mint)
             
             Text(title)
-                .font(.body)
+                .font(.subheadline)
                 .fontWeight(.medium)
             
             Spacer()
@@ -486,6 +483,7 @@ struct EditHabitView: View {
         Button {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 viewModel.updateActivity(in: context)
+                dismiss()
                 dismiss()
             }
         } label: {

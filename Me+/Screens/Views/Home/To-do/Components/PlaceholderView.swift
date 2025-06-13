@@ -10,9 +10,9 @@ struct PlaceholderView: View {
     let timer = Timer.publish(every: 4.0, on: .main, in: .common).autoconnect()
     
     // Tips array for subtle text animation
-    private let tips = ["1.⁠ ⁠More on Mon, Tue, Wed",
-                        "2.⁠ ⁠More in morning than evening",
-                        "3.⁠ ⁠⁠Definitely set time for rest"]
+    private let tips = ["More on Mon, Tue, Wed",
+                        "More in morning than evening",
+                        "Definitely set time for rest"]
     
     var body: some View {
         VStack(spacing: 16) {
@@ -38,11 +38,6 @@ struct PlaceholderView: View {
                     .rotationEffect(.degrees(isAnimating ? 2 : -2))
             }
             .onAppear {
-//                // Staggered animation start
-//                withAnimation(.easeInOut(duration: 0.8)) {
-//                    opacity = 1
-//                }
-                
                 // Gentle breathing animation
                 withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true)) {
                     breathingScale = 1.05

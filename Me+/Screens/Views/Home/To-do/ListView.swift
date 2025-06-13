@@ -36,8 +36,9 @@ struct ListView: View {
     let mediumImpactGenerator = UIImpactFeedbackGenerator(style: .medium)
     let heavyImpactGenerator = UIImpactFeedbackGenerator(style: .heavy)
     
-    // Keyboard handling
+    // Improved keyboard handling for different screen sizes
     @State private var keyboardHeight: CGFloat = 0
+    @State private var safeAreaBottom: CGFloat = 0
     @FocusState private var isTextFieldFocused: Bool
     
     // Animation states - Fixed to prevent loops
@@ -63,6 +64,26 @@ struct ListView: View {
     // Helper to check if this is the first completed task of the day
     private var completedTasksToday: Int {
         filteredActivities.filter { $0.isCompleted }.count
+    }
+    
+    // Computed property for adaptive bottom padding
+    private var adaptiveBottomPadding: CGFloat {
+        if keyboardHeight > 0 {
+            // When keyboard is shown, position just above keyboard with some spacing
+            return keyboardHeight + 16
+        } else {
+            // When keyboard is hidden, use safe area + some padding
+            return max(safeAreaBottom + 25, 60)
+        }
+    }
+    
+    // Computed property for list bottom padding
+    private var listBottomPadding: CGFloat {
+        if keyboardHeight > 0 {
+            return keyboardHeight + 80 // Extra space for the text field
+        } else {
+            return max(safeAreaBottom + 85, 120) // Adaptive to safe area
+        }
     }
     
     // Helper to calculate current streak (you might want to implement actual streak logic)
@@ -94,71 +115,77 @@ struct ListView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                if filteredActivities.isEmpty {
-                    PlaceholderView()
-                        .scaleEffect(pulseScale)
-                        .onAppear {
-                            startPulseAnimation()
-                        }
-                        .onDisappear {
-                            stopPulseAnimation()
-                        }
-                }
-                List {
-                    Section {
-                        ForEach(Array(filteredActivities.enumerated()), id: \.element.id) { index, activity in
-                            ActivityRowView(
-                                activity: activity,
-                                index: index,
-                                isPressed: pressedTaskID == activity.id,
-                                isAnimatingCompletion: animateCompletion == activity.id,
-                                isNewTask: newTaskAnimation == activity.id,
-                                onTap: {
-                                    handleActivityTap(activity)
-                                },
-                                onComplete: {
-                                    handleActivityCompletion(activity, at: index)
-                                },selectedDate:$selectedDate
-                            )
-                            .swipeActions(edge: .trailing) {
-                                if !activity.isCompleted {
-                                    SwipeActionsView(
-                                        activity: activity,
-                                        onDeleteSingle: { deleteSingleActivity(activity: activity) },
-                                        onDeleteAll: { deleteAllFutureTasks(for: activity.baseID, from: activity.date) }
-                                    )
-                                }
+            GeometryReader { geometry in
+                ZStack {
+                    if filteredActivities.isEmpty {
+                        PlaceholderView()
+                            .scaleEffect(pulseScale)
+                            .onAppear {
+                                startPulseAnimation()
                             }
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 2, leading: 15, bottom: 2, trailing: 15))
+                            .onDisappear {
+                                stopPulseAnimation()
+                            }
+                    }
+                    
+                    List {
+                        Section {
+                            ForEach(Array(filteredActivities.enumerated()), id: \.element.id) { index, activity in
+                                ActivityRowView(
+                                    activity: activity,
+                                    index: index,
+                                    isPressed: pressedTaskID == activity.id,
+                                    isAnimatingCompletion: animateCompletion == activity.id,
+                                    isNewTask: newTaskAnimation == activity.id,
+                                    onTap: {
+                                        handleActivityTap(activity)
+                                    },
+                                    onComplete: {
+                                        handleActivityCompletion(activity, at: index)
+                                    },selectedDate:$selectedDate
+                                )
+                                .swipeActions(edge: .trailing) {
+                                    if !activity.isCompleted {
+                                        SwipeActionsView(
+                                            activity: activity,
+                                            onDeleteSingle: { deleteSingleActivity(activity: activity) },
+                                            onDeleteAll: { deleteAllFutureTasks(for: activity.baseID, from: activity.date) }
+                                        )
+                                    }
+                                }
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 2, leading: 15, bottom: 2, trailing: 15))
+                            }
+                        }
+                        .padding(2)
+                        .listSectionSeparator(.hidden)
+                    }
+                    .listRowSeparator(.hidden)
+                    .scrollIndicators(.hidden)
+                    .listStyle(PlainListStyle())
+                    .environment(\.defaultMinListRowHeight, 0)
+                    .padding(.top, -1)
+                    .padding(.bottom, listBottomPadding)
+                    
+                    // Improved positioning for different screen sizes
+                    VStack {
+                        Spacer()
+                        if selectedDate >= Calendar.current.startOfDay(for: Date()) {
+                            AddTaskTextField(
+                                text: $text,
+                                isTextFieldFocused: $isTextFieldFocused,
+                                onSubmit: handleAddTask
+                            )
+                            .padding(.horizontal, 16)
                         }
                     }
-                    .padding(2)
-                    .listSectionSeparator(.hidden)
+                    .padding(.bottom, adaptiveBottomPadding)
+                    .animation(.easeInOut(duration: 0.3), value: keyboardHeight)
                 }
-                .listRowSeparator(.hidden)
-               // .listRowBackground(Color.clear)
-                .scrollIndicators(.hidden)
-               // .scrollContentBackground(.hidden)
-                .listStyle(PlainListStyle())
-                .environment(\.defaultMinListRowHeight, 0)
-                .padding(.top, -1)
-                .padding(.bottom, keyboardHeight > 0 ? keyboardHeight + 10 : 60)
-                
-                VStack {
-                    Spacer()
-                    if selectedDate >= Calendar.current.startOfDay(for: Date()) {
-                        AddTaskTextField(
-                            text: $text,
-                            isTextFieldFocused: $isTextFieldFocused,
-                            onSubmit: handleAddTask
-                        )
-                        .padding(.horizontal, 16)
-                    }
+                .onAppear {
+                    // Get safe area bottom for this device
+                    safeAreaBottom = geometry.safeAreaInsets.bottom
                 }
-                .padding(.bottom, keyboardHeight > 0 ? keyboardHeight - 38 : 25)
-                .animation(.easeInOut(duration: 0.3), value: keyboardHeight)
             }
             .sheet(isPresented: $showEditHabit) {
                 PreloadedTaskView(selectedDate: $selectedDate)
