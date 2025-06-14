@@ -25,9 +25,11 @@ class LocalNotificationManager {
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("Notification error: \(error.localizedDescription)")
+                print("❌ Notification error: \(error.localizedDescription)")
             } else {
-                print("Notification scheduled with ID: \(id)")
+                print("✅ Notification scheduled with ID: \(id)")
+                print("📅 Date Components: \(dateComponents)")
+                print("🔄 Repeats: \(repeats)")
             }
         }
     }
@@ -35,12 +37,39 @@ class LocalNotificationManager {
     // Cancel only the notification for this activity
     func cancelNotification(for id: UUID) {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id.uuidString])
-        print("Cancelled notification for ID: \(id)")
+        print("🗑️ Cancelled notification for ID: \(id)")
     }
 
     // Use only for global resets/debug
     func cancelAllNotifications() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        print("All notifications cancelled")
+        print("🗑️ All notifications cancelled")
+    }
+    
+    // Debug method to check what's actually scheduled
+    func checkPendingNotifications() {
+        UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
+            print("\n=== 📋 PENDING NOTIFICATIONS ===")
+            for request in requests {
+                if let trigger = request.trigger as? UNCalendarNotificationTrigger {
+                    print("🆔 ID: \(request.identifier)")
+                    print("📰 Title: \(request.content.title)")
+                    print("💬 Body: \(request.content.body)")
+                    print("📅 Date Components: \(trigger.dateComponents)")
+                    print("🔄 Repeats: \(trigger.repeats)")
+                    
+                    // Try to create a readable date from components
+                    if let date = Calendar.current.date(from: trigger.dateComponents) {
+                        let formatter = DateFormatter()
+                        formatter.dateStyle = .medium
+                        formatter.timeStyle = .short
+                        print("📆 Readable Date: \(formatter.string(from: date))")
+                    }
+                    print("---")
+                }
+            }
+            print("📊 Total pending: \(requests.count)")
+            print("===============================\n")
+        }
     }
 }
