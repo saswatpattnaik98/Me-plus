@@ -54,6 +54,7 @@ struct ListView: View {
     @State private var celebrationTaskName = ""
     @State private var isFirstTaskOfDay = false
     @State private var currentStreak = 1
+    @State private var showChatBot = false
     
     var filteredActivities: [Activity] {
         activities.filter {
@@ -177,6 +178,17 @@ struct ListView: View {
                     // Improved positioning for different screen sizes
                     VStack {
                         Spacer()
+                        HStack{
+                            Spacer()
+                            Button{
+                                showChatBot.toggle()
+                            }label: {
+                                Image(systemName: "poweroutlet.type.a.fill")
+                                    .font(.title)
+                                    .foregroundStyle(.indigo)
+                                
+                            }
+                        }.padding()
                         if selectedDate >= Calendar.current.startOfDay(for: Date()) {
                             AddTaskTextField(
                                 text: $text,
@@ -203,6 +215,9 @@ struct ListView: View {
                 } else {
                     Text("Activity not found.")
                 }
+            }
+            .sheet(isPresented: $showChatBot){
+                ChatView()
             }
             .fullScreenCover(isPresented: $showTaskCelebration) {
                 TaskCompletionCelebrationView(
