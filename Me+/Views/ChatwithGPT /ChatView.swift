@@ -2,31 +2,42 @@
 import SwiftUI
 
 struct ChatView: View {
-    @StateObject private var viewModel = ViewModel()
+    @StateObject  var viewModel = ViewModel()
+    @Environment(\.modelContext) private var modelContext
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Header
                 headerView
-                
-                // Messages
                 messagesView
-                
-                // Input area
+                HStack{
+                    Spacer()
+                    headerAddTasksButton
+                }.padding()
                 inputView
             }
             .background(Color(UIColor.systemGroupedBackground))
             .navigationBarHidden(true)
+            .sheet(isPresented: $viewModel.showTasksSaveDialog) {
+                TaskSaveSheet(
+                    tasks: viewModel.parsedTasks,
+                    onSave: { selectedTasks in
+                        viewModel.saveTasksToTodoApp(selectedTasks, modelContext: modelContext)
+                    },
+                    onCancel: {
+                        viewModel.showTasksSaveDialog = false
+                    }
+                )
+            }
         }
     }
     
     private var headerView: some View {
         VStack {
             HStack {
-//                Text("ChatwithGPT")
-//                    .font(.system(size: 32, weight: .bold, design: .rounded))
-//                    .foregroundColor(.primary)
+                Text("AI Assistant")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
                 
                 Spacer()
                 
@@ -68,9 +79,18 @@ struct ChatView: View {
                         emptyStateView
                     }
                     
-                    ForEach(viewModel.messages.filter({ $0.role != .system }), id: \.id) { message in
-                        MessageBubble(message: message)
-                            .id(message.id)
+                    ForEach(viewModel.messages.filter({ $0.role != .system }),id: \.id) { message in
+                        VStack(alignment: .leading, spacing: 8) {
+                            MessageBubble(message: message)
+                                .id(message.id)
+                            
+                            // Show "Save to Tasks" button for assistant messages with parsed tasks
+                            if message.role == .assistant &&
+                               message.id == viewModel.messages.last?.id &&
+                               !viewModel.parsedTasks.isEmpty {
+                                saveToTasksButton
+                            }
+                        }
                     }
                     
                     if viewModel.isLoading {
@@ -90,18 +110,54 @@ struct ChatView: View {
         }
     }
     
+    // MARK: - Updated Chat View with Smart Add Tasks Button
+     var saveToTasksButton: some View {
+        HStack {
+            Spacer()
+            
+            // Show button only when we have a complete planner
+            if viewModel.showAddTasksButton {
+                Button(action: {
+                    viewModel.showTasksSaveDialog = true
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add \(viewModel.parsedTasks.count) Tasks to Schedule")
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                }
+                .shadow(color: .blue.opacity(0.3), radius: 6, x: 0, y: 3)
+                .scaleEffect(1.02)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.showAddTasksButton)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+    }
+    
     private var emptyStateView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "message.circle")
+            Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 60))
                 .foregroundColor(.secondary.opacity(0.6))
             
-            Text("Start a conversation")
+            Text("How can I help you today?")
                 .font(.title2)
                 .fontWeight(.medium)
                 .foregroundColor(.secondary)
             
-            Text("Ask me anything about programming, development, or technical topics")
+            Text("I can help you create workout plans, daily routines, study schedules, and more!")
                 .font(.subheadline)
                 .foregroundColor(.secondary.opacity(0.8))
                 .multilineTextAlignment(.center)
@@ -138,7 +194,7 @@ struct ChatView: View {
     
     private var inputView: some View {
         HStack(spacing: 12) {
-            TextField("Ask me anything...", text: $viewModel.currentInput, axis: .vertical)
+            TextField("Ask for routines, schedules, or tasks...", text: $viewModel.currentInput, axis: .vertical)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(size: 16))
                 .padding(.horizontal, 16)
@@ -170,13 +226,141 @@ struct ChatView: View {
         .padding(.vertical, 12)
         .background(Color(UIColor.systemGroupedBackground))
     }
+    // MARK: - Alternative: Header Button for Manual Add
+     var headerAddTasksButton: some View {
+        Button(action: {
+            viewModel.showAddTasksManually()
+        }) {
+            Image(systemName: "plus.square.on.square")
+                .foregroundColor(.blue)
+                .font(.title2)
+        }
+        .disabled(viewModel.messages.isEmpty)
+        .opacity(viewModel.messages.isEmpty ? 0.5 : 1.0)
+    }
     
     private var canSend: Bool {
         !viewModel.currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !viewModel.isLoading
     }
 }
 
-// MARK: - Message Bubble Component
+// MARK: - Task Save Sheet
+struct TaskSaveSheet: View {
+    let tasks: [ParsedTask]
+    let onSave: ([ParsedTask]) -> Void
+    let onCancel: () -> Void
+    
+    @State private var selectedTasks: Set<UUID> = []
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 16) {
+                Text("Save Tasks to Your Todo List")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .padding(.top)
+                
+                Text("Select the tasks you want to add:")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                List {
+                    ForEach(tasks) { task in
+                        TaskSelectionRow(
+                            task: task,
+                            isSelected: selectedTasks.contains(task.id)
+                        ) { isSelected in
+                            if isSelected {
+                                selectedTasks.insert(task.id)
+                            } else {
+                                selectedTasks.remove(task.id)
+                            }
+                        }
+                    }
+                }
+                
+                HStack(spacing: 16) {
+                    Button("Cancel") {
+                        onCancel()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(.systemGray5))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    
+                    Button("Save \(selectedTasks.count) Tasks") {
+                        let tasksToSave = tasks.filter { selectedTasks.contains($0.id) }
+                        onSave(tasksToSave)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(selectedTasks.isEmpty ? Color(.systemGray5) : Color.blue)
+                    .foregroundColor(selectedTasks.isEmpty ? .secondary : .white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .disabled(selectedTasks.isEmpty)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+        }
+        .onAppear {
+            // Select all tasks by default
+            selectedTasks = Set(tasks.map { $0.id })
+        }
+    }
+}
+
+// MARK: - Task Selection Row
+struct TaskSelectionRow: View {
+    let task: ParsedTask
+    let isSelected: Bool
+    let onToggle: (Bool) -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: {
+                onToggle(!isSelected)
+            }) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? .blue : .secondary)
+                    .font(.title2)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.name)
+                    .font(.headline)
+                    .multilineTextAlignment(.leading)
+                
+                HStack {
+                    Text("\(task.duration) min")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.2))
+                        .clipShape(Capsule())
+                    
+                    Text(formatDate(task.suggestedDate))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onToggle(!isSelected)
+        }
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - Message Bubble (same as before)
 struct MessageBubble: View {
     let message: Mesaage
     
@@ -252,6 +436,7 @@ struct BubbleShape: Shape {
         return Path(path.cgPath)
     }
 }
+
 
 #Preview {
     ChatView()
