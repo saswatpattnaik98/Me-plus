@@ -28,12 +28,11 @@ class OpenAlService {
         allMessages.append(contentsOf: openAIMessages)
         
         let body = OpenAIChatBody(
-            model: "gpt-4o",
+            model: "gpt-4o-mini",
             messages: allMessages,
             temperature: 0.2,
             max_tokens: 2000
         )
-        
         let headers: HTTPHeaders = [
             "Authorization": "Bearer \(Constants.apiKey)",
             "Content-Type": "application/json"

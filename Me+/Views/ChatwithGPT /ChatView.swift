@@ -152,12 +152,12 @@ struct ChatView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.secondary.opacity(0.6))
             
-            Text("How can I help you today?")
+            Text("What new goal do you want to achieve today?")
                 .font(.title2)
                 .fontWeight(.medium)
                 .foregroundColor(.secondary)
             
-            Text("I can help you create workout plans, daily routines, study schedules, and more!")
+            Text("I can help you break it into microtasks, set daily routines, and accomplish them everyday with simple nudges.")
                 .font(.subheadline)
                 .foregroundColor(.secondary.opacity(0.8))
                 .multilineTextAlignment(.center)
