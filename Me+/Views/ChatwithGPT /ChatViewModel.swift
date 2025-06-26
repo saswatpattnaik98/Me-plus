@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
-// MARK: - Enhanced Chat ViewModel with Smart Planner Detection
+
+// MARK: - Enhanced Chat ViewModel with Unique Task Key Detection
 extension ChatView {
     @MainActor
     class ViewModel: ObservableObject {
@@ -10,24 +11,28 @@ extension ChatView {
         @Published var errorMessage: String?
         @Published var parsedTasks: [ParsedTask] = []
         @Published var showTasksSaveDialog: Bool = false
-        @Published var showAddTasksButton: Bool = false // New property for button visibility
+        @Published var showAddTasksButton: Bool = false
         
-         let openAIService = OpenAlService()
+        let openAIService = OpenAlService()
+        
+        // Unique task key that AI should include when providing actual tasks/routines
+        private let TASK_KEY = "ROUTINE_TASKS_READY_2024"
         
         func sendMessage() {
-            guard !currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-            
-            let newMessage = Mesaage(id: UUID(), role: .user, content: currentInput, createdAt: Date())
-            messages.append(newMessage)
-            
-            let messageToSend = currentInput
+            let trimmed = currentInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+
+            let messageToSend = trimmed
             currentInput = ""
             isLoading = true
             errorMessage = nil
-            
+
+            let newMessage = Mesaage(id: UUID(), role: .user, content: messageToSend, createdAt: Date())
+            messages.append(newMessage)
+
             Task {
                 let response = await openAIService.sendMessage(messages: messages)
-                
+
                 guard let receivedOpenAIMessage = response?.choices.first?.message else {
                     await MainActor.run {
                         errorMessage = "Failed to get response. Please try again."
@@ -35,92 +40,79 @@ extension ChatView {
                     }
                     return
                 }
-                
+
                 let receivedMessage = Mesaage(
                     id: UUID(),
                     role: receivedOpenAIMessage.role,
                     content: receivedOpenAIMessage.content,
                     createdAt: Date()
                 )
-                
+
                 await MainActor.run {
                     messages.append(receivedMessage)
-                    
-                    // Smart detection for complete planners/routines
-                    let isCompletePlanner = detectCompletePlanner(receivedOpenAIMessage.content)
-                    
-                    if isCompletePlanner {
-                        // Parse tasks from AI response
+
+                    if receivedOpenAIMessage.content.contains(TASK_KEY) {
                         parsedTasks = parseTasksFromResponse(receivedOpenAIMessage.content)
                         showAddTasksButton = !parsedTasks.isEmpty
                     } else {
                         showAddTasksButton = false
+                        parsedTasks.removeAll()
                     }
-                    
+
                     isLoading = false
                 }
             }
         }
+
         
-        // MARK: - Smart Planner Detection Logic
-        private func detectCompletePlanner(_ content: String) -> Bool {
-            let lowercaseContent = content.lowercased()
-            let wordCount = content.split(separator: " ").count
-            
-            // Must be substantial content (at least 100 words)
-            guard wordCount >= 100 else { return false }
-            
-            // Check for planner/routine indicators
-            let plannerIndicators = [
-                "here's your", "here is your", "here's a", "here is a",
-                "workout plan", "routine for", "schedule for", "planner for",
-                "daily routine", "weekly routine", "fitness plan", "exercise plan",
-                "study schedule", "learning plan", "meal plan", "training program"
-            ]
-            
-            let hasPlannerIndicator = plannerIndicators.contains { indicator in
-                lowercaseContent.contains(indicator)
-            }
-            
-            // Count structured elements (numbered lists, bullet points, etc.)
-            let structuredPatterns = [
-                #"^\d+\.\s*.+"#,           // 1. Something
-                #"^[-*•]\s*.+"#,           // - Something
-                #"^day\s*\d+:"#,           // Day 1:
-                #"^week\s*\d+:"#,          // Week 1:
-                #"^\d+:\d+\s*(am|pm)?"#    // Time formats
-            ]
-            
-            let lines = content.components(separatedBy: .newlines)
-            var structuredLines = 0
-            
-            for line in lines {
-                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                for pattern in structuredPatterns {
-                    if trimmedLine.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil {
-                        structuredLines += 1
-                        break
-                    }
-                }
-            }
-            
-            // Must have planner indicator AND at least 3 structured lines
-            return hasPlannerIndicator && structuredLines >= 3
+        // MARK: - Get Task Key (for UI to display instructions)
+        func getTaskKey() -> String {
+            return TASK_KEY
         }
         
-        // MARK: - Updated Task Line Detection (More Precise)
+        // MARK: - Check if message contains task key
+        func containsTaskKey(_ content: String) -> Bool {
+            return content.contains(TASK_KEY)
+        }
+        
+        // MARK: - Clean message content (remove task key for display)
+        func cleanMessageContent(_ content: String) -> String {
+            return content.replacingOccurrences(of: TASK_KEY, with: "")
+                          .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        // MARK: - Improved Task Line Detection
         private func isTaskLine(_ line: String) -> Bool {
-            // Pattern matching for tasks
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Skip empty lines or lines that are too short to be meaningful tasks
+            guard !trimmedLine.isEmpty && trimmedLine.count >= 5 else { return false }
+            
+            // Pattern matching for common task formats
             let taskPatterns = [
-                #"^\d+\.\s*.{10,}"#,              // 1. Task name (at least 10 chars)
-                #"^[-*•]\s*.{10,}"#,              // - Task name (at least 10 chars)
-                #"^\[\s*\]\s*.{10,}"#,            // [ ] Task name (at least 10 chars)
-                #"^(Day|Week)\s*\d+:\s*.{10,}"#,  // Day 1: Task name
-                #"^\d+:\d+\s*(AM|PM|am|pm)?\s*-\s*.{10,}"# // Time-based tasks
+                #"^\d+\.\s*.{5,}"#,                    // 1. Task name (at least 5 chars)
+                #"^[-*•]\s*.{5,}"#,                    // - Task name (at least 5 chars)
+                #"^\[\s*\]\s*.{5,}"#,                  // [ ] Task name (at least 5 chars)
+                #"^(Day|Week)\s*\d+:\s*.{5,}"#,        // Day 1: Task name
+                #"^\d+:\d+\s*(AM|PM|am|pm)?\s*-\s*.{5,}"#, // Time-based tasks
+                #"^(Morning|Afternoon|Evening):\s*.{5,}"#,  // Time period tasks
+                #"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday):\s*.{5,}"# // Day-based tasks
             ]
             
             for pattern in taskPatterns {
-                if line.range(of: pattern, options: .regularExpression) != nil {
+                if trimmedLine.range(of: pattern, options: .regularExpression) != nil {
+                    return true
+                }
+            }
+            
+            // Additional check for workout/exercise specific patterns
+            let workoutPatterns = [
+                #"^\d+\s*x\s*\d+\s*.{5,}"#,           // 3 x 10 Push ups
+                #"^\d+\s*(reps?|sets?|minutes?|mins?|seconds?|secs?)\s*.{5,}"#, // 10 reps Push ups
+            ]
+            
+            for pattern in workoutPatterns {
+                if trimmedLine.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil {
                     return true
                 }
             }
@@ -130,14 +122,16 @@ extension ChatView {
         
         // MARK: - Manual Add Tasks Function
         func showAddTasksManually() {
-            // Parse tasks from the last AI message
-            if let lastAssistantMessage = messages.last(where: { $0.role == .assistant }) {
+            // Parse tasks from the last AI message that contains the task key
+            if let lastAssistantMessage = messages.last(where: { $0.role == .assistant && containsTaskKey($0.content) }) {
                 parsedTasks = parseTasksFromResponse(lastAssistantMessage.content)
                 if !parsedTasks.isEmpty {
                     showTasksSaveDialog = true
                 } else {
-                    errorMessage = "No tasks found in the current response."
+                    errorMessage = "No valid tasks found in the response."
                 }
+            } else {
+                errorMessage = "No task list found. Please ask the AI to create a specific routine or task list."
             }
         }
         
@@ -147,22 +141,39 @@ extension ChatView {
             parsedTasks.removeAll()
         }
         
-        // MARK: - Task Parsing Logic (Same as before)
+        // MARK: - Enhanced Task Parsing Logic
         private func parseTasksFromResponse(_ content: String) -> [ParsedTask] {
             var tasks: [ParsedTask] = []
             let lines = content.components(separatedBy: .newlines)
             
+            // First, try to identify sections or categories
+            var currentSection = ""
+            var dayCounter = 0
+            
             for line in lines {
                 let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
                 
-                // Skip empty lines
-                guard !trimmedLine.isEmpty else { continue }
+                // Skip empty lines and the task key
+                guard !trimmedLine.isEmpty && !trimmedLine.contains(TASK_KEY) else { continue }
                 
-                // Check if line looks like a task (various patterns)
+                // Check for section headers (Day 1, Week 1, Morning Routine, etc.)
+                if isSectionHeader(trimmedLine) {
+                    currentSection = trimmedLine
+                    if trimmedLine.lowercased().contains("day") {
+                        dayCounter += 1
+                    }
+                    continue
+                }
+                
+                // Check if line looks like a task
                 if isTaskLine(trimmedLine) {
                     let taskName = cleanTaskName(trimmedLine)
+                    
+                    // Skip if task name is too short after cleaning
+                    guard taskName.count >= 3 else { continue }
+                    
                     let duration = extractDuration(trimmedLine)
-                    let suggestedDate = extractDate(from: content, taskLine: trimmedLine)
+                    let suggestedDate = extractDate(from: content, taskLine: trimmedLine, section: currentSection, dayNumber: dayCounter)
                     
                     let task = ParsedTask(
                         name: taskName,
@@ -177,16 +188,37 @@ extension ChatView {
             return tasks
         }
         
+        // MARK: - Section Header Detection
+        private func isSectionHeader(_ line: String) -> Bool {
+            let headerPatterns = [
+                #"^(Day|Week)\s*\d+:?\s*$"#,
+                #"^(Morning|Afternoon|Evening|Night)\s*(Routine|Workout|Session)?:?\s*$"#,
+                #"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s*(Routine|Workout|Session)?:?\s*$"#,
+                #"^(Warm-up|Cool-down|Cardio|Strength|Flexibility):?\s*$"#
+            ]
+            
+            for pattern in headerPatterns {
+                if line.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil {
+                    return true
+                }
+            }
+            
+            return false
+        }
+        
+        // MARK: - Enhanced Task Name Cleaning
         private func cleanTaskName(_ line: String) -> String {
             var cleaned = line
             
             // Remove common prefixes
             let prefixPatterns = [
-                #"^\d+\.\s*"#,           // 1.
-                #"^[-*•]\s*"#,           // - or * or •
-                #"^\[\s*\]\s*"#,         // [ ]
-                #"^(Day|Week)\s*\d+:\s*"#,  // Day 1: or Week 1:
-                #"^(Task|Step|Activity):\s*"#  // Task:
+                #"^\d+\.\s*"#,                        // 1.
+                #"^[-*•]\s*"#,                        // - or * or •
+                #"^\[\s*\]\s*"#,                      // [ ]
+                #"^(Day|Week)\s*\d+:\s*"#,            // Day 1: or Week 1:
+                #"^(Task|Step|Activity|Exercise):\s*"#, // Task:
+                #"^(Morning|Afternoon|Evening):\s*"#,  // Morning:
+                #"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday):\s*"# // Monday:
             ]
             
             for pattern in prefixPatterns {
@@ -204,90 +236,129 @@ extension ChatView {
                 options: .regularExpression
             )
             
+            // Remove workout-specific patterns that might be at the beginning
+            cleaned = cleaned.replacingOccurrences(
+                of: #"^\d+\s*x\s*\d+\s*"#,
+                with: "",
+                options: .regularExpression
+            )
+            
             return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         
+        // MARK: - Enhanced Duration Extraction
         private func extractDuration(_ line: String) -> Int {
-            // Look for duration patterns (15 min, 30 minutes, 1 hour, etc.)
+            // Look for duration patterns
             let patterns = [
-                #"(\d+)\s*min"#,
-                #"(\d+)\s*minute"#,
-                #"(\d+)\s*hour"#,
-                #"(\d+)\s*hr"#
+                (#"(\d+)\s*min(ute)?s?"#, 1),          // minutes
+                (#"(\d+)\s*hour?s?"#, 60),             // hours (convert to minutes)
+                (#"(\d+)\s*hr?s?"#, 60),               // hours abbreviated
+                (#"(\d+)\s*sec(ond)?s?"#, 1),          // seconds (convert to minutes, minimum 1)
+                (#"(\d+)\s*x\s*(\d+)"#, 1)             // reps format like "3 x 10"
             ]
             
-            for pattern in patterns {
-                if let match = line.range(of: pattern, options: .regularExpression) {
+            for (pattern, multiplier) in patterns {
+                if let match = line.range(of: pattern, options: [.regularExpression, .caseInsensitive]) {
                     let matchedText = String(line[match])
-                    if let number = Int(matchedText.replacingOccurrences(of: #"[^\d]"#, with: "", options: .regularExpression)) {
-                        if matchedText.lowercased().contains("hour") || matchedText.lowercased().contains("hr") {
-                            return number * 60 // Convert hours to minutes
+                    let numbers = matchedText.components(separatedBy: CharacterSet.decimalDigits.inverted)
+                        .compactMap { Int($0) }
+                    
+                    if let firstNumber = numbers.first {
+                        if pattern.contains("sec") {
+                            return max(1, firstNumber / 60) // Convert seconds to minutes, minimum 1
+                        } else if pattern.contains("x") && numbers.count >= 2 {
+                            // For exercise patterns like "3 x 10", estimate based on sets
+                            return max(5, numbers[0] * 2) // Rough estimate: sets * 2 minutes
+                        } else {
+                            return firstNumber * multiplier
                         }
-                        return number
                     }
                 }
+            }
+            
+            // Default duration based on task type
+            let lowercaseLine = line.lowercased()
+            if lowercaseLine.contains("run") || lowercaseLine.contains("cardio") || lowercaseLine.contains("jog") {
+                return 30 // Default cardio duration
+            } else if lowercaseLine.contains("meditat") || lowercaseLine.contains("stretch") {
+                return 15 // Default meditation/stretching duration
+            } else if lowercaseLine.contains("read") || lowercaseLine.contains("study") {
+                return 45 // Default reading/study duration
             }
             
             return 30 // Default duration
         }
         
         // MARK: - Enhanced Date Extraction
-        private func extractDate(from content: String, taskLine: String) -> Date {
+        private func extractDate(from content: String, taskLine: String, section: String, dayNumber: Int) -> Date {
             let calendar = Calendar.current
             let today = Date()
             
-            // Look for specific day references in both content and task line
+            // Priority 1: Check task line for specific day references
+            let taskLineText = taskLine.lowercased()
+            if let specificDate = extractSpecificDayFromText(taskLineText, from: today) {
+                return specificDate
+            }
+            
+            // Priority 2: Check section header for day references
+            if !section.isEmpty {
+                let sectionText = section.lowercased()
+                if let specificDate = extractSpecificDayFromText(sectionText, from: today) {
+                    return specificDate
+                }
+                
+                // Handle "Day X" patterns in section
+                if let dayMatch = section.range(of: #"day\s*(\d+)"#, options: [.regularExpression, .caseInsensitive]) {
+                    let dayText = String(section[dayMatch])
+                    if let dayNum = Int(dayText.replacingOccurrences(of: #"[^\d]"#, with: "", options: .regularExpression)) {
+                        return calendar.date(byAdding: .day, value: dayNum - 1, to: today) ?? today
+                    }
+                }
+            }
+            
+            // Priority 3: Use day counter from parsing
+            if dayNumber > 0 {
+                return calendar.date(byAdding: .day, value: dayNumber - 1, to: today) ?? today
+            }
+            
+            // Priority 4: Check full content for general day references
+            let combinedText = content.lowercased()
+            if let specificDate = extractSpecificDayFromText(combinedText, from: today) {
+                return specificDate
+            }
+            
+            return today // Default to today
+        }
+        
+        // MARK: - Extract Specific Day from Text
+        private func extractSpecificDayFromText(_ text: String, from baseDate: Date) -> Date? {
+            let calendar = Calendar.current
+            
             let dayPatterns = [
                 ("tomorrow", 1),
                 ("next day", 1),
-                ("monday", daysUntilWeekday(1)),
-                ("tuesday", daysUntilWeekday(2)),
-                ("wednesday", daysUntilWeekday(3)),
-                ("thursday", daysUntilWeekday(4)),
-                ("friday", daysUntilWeekday(5)),
-                ("saturday", daysUntilWeekday(6)),
-                ("sunday", daysUntilWeekday(7))
+                ("monday", daysUntilWeekday(2, from: baseDate)),    // Calendar weekday: Sunday=1, Monday=2
+                ("tuesday", daysUntilWeekday(3, from: baseDate)),
+                ("wednesday", daysUntilWeekday(4, from: baseDate)),
+                ("thursday", daysUntilWeekday(5, from: baseDate)),
+                ("friday", daysUntilWeekday(6, from: baseDate)),
+                ("saturday", daysUntilWeekday(7, from: baseDate)),
+                ("sunday", daysUntilWeekday(1, from: baseDate))
             ]
             
-            // Check task line first for more specific date
-            let taskLineText = taskLine.lowercased()
             for (dayName, daysToAdd) in dayPatterns {
-                if taskLineText.contains(dayName) {
-                    return calendar.date(byAdding: .day, value: daysToAdd, to: today) ?? today
+                if text.contains(dayName) {
+                    return calendar.date(byAdding: .day, value: daysToAdd, to: baseDate)
                 }
             }
             
-            // Then check the full content
-            let combinedText = content.lowercased()
-            for (dayName, daysToAdd) in dayPatterns {
-                if combinedText.contains(dayName) {
-                    return calendar.date(byAdding: .day, value: daysToAdd, to: today) ?? today
-                }
-            }
-            
-            // Look for date patterns like "Day 1", "Day 2", etc.
-            if let dayMatch = taskLine.range(of: #"day\s*(\d+)"#, options: [.regularExpression, .caseInsensitive]) {
-                let dayText = String(taskLine[dayMatch])
-                if let dayNumber = Int(dayText.replacingOccurrences(of: #"[^\d]"#, with: "", options: .regularExpression)) {
-                    return calendar.date(byAdding: .day, value: dayNumber - 1, to: today) ?? today
-                }
-            }
-            
-            // Look for week patterns
-            if let weekMatch = taskLine.range(of: #"week\s*(\d+)"#, options: [.regularExpression, .caseInsensitive]) {
-                let weekText = String(taskLine[weekMatch])
-                if let weekNumber = Int(weekText.replacingOccurrences(of: #"[^\d]"#, with: "", options: .regularExpression)) {
-                    return calendar.date(byAdding: .day, value: (weekNumber - 1) * 7, to: today) ?? today
-                }
-            }
-            
-            return today // Default to today - will be distributed by saveTasksToTodoApp
+            return nil
         }
         
-        private func daysUntilWeekday(_ targetWeekday: Int) -> Int {
+        // MARK: - Calculate Days Until Weekday
+        private func daysUntilWeekday(_ targetWeekday: Int, from date: Date) -> Int {
             let calendar = Calendar.current
-            let today = Date()
-            let currentWeekday = calendar.component(.weekday, from: today)
+            let currentWeekday = calendar.component(.weekday, from: date)
             
             let daysUntil = (targetWeekday - currentWeekday + 7) % 7
             return daysUntil == 0 ? 7 : daysUntil // If today, schedule for next week
@@ -330,7 +401,7 @@ extension ChatView {
                 try modelContext.save()
                 parsedTasks.removeAll()
                 showTasksSaveDialog = false
-                showAddTasksButton = false // Hide button after saving
+                showAddTasksButton = false
             } catch {
                 errorMessage = "Failed to save tasks: \(error.localizedDescription)"
             }

@@ -127,10 +127,10 @@ struct ListView: View {
                     }
                     
                     List {
-                        Section{
-                            ListTopCardView()
-                        }
-                        .listSectionSeparator(.hidden)
+//                        Section{
+//                            ListTopCardView()
+//                        }
+//                        .listSectionSeparator(.hidden)
                         Section {
                             ForEach(Array(filteredActivities.sorted { a, b in // undone tasks first, then done
                                     (!a.isCompleted && b.isCompleted)
@@ -183,9 +183,18 @@ struct ListView: View {
                             Button{
                                 showChatBot.toggle()
                             }label: {
-                                Image(systemName: "poweroutlet.type.a.fill")
-                                    .font(.title)
-                                    .foregroundStyle(.indigo)
+                                ZStack{
+                                    Circle()
+                                        .fill(Color.indigo.opacity(0.2))
+                                        .frame(width: 45, height: 45)
+                                        .shadow(color: .indigo.opacity(0.3) , radius: 4, x: 0, y: 2)
+                                    
+                                    Image("appIcon")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width:20,height: 20)
+                                        .font(.title)
+                                }
                                 
                             }
                         }.padding()

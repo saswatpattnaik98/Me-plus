@@ -1,22 +1,21 @@
-// MARK: - Enhanced Chat View
+// MARK: - Enhanced Chat View with Unique Task Key Detection
 import SwiftUI
 
 struct ChatView: View {
-    @StateObject  var viewModel = ViewModel()
+    @StateObject var viewModel = ViewModel()
     @Environment(\.modelContext) private var modelContext
+    // Unique task key that AI should include when providing actual tasks/routines
+    private let TASK_KEY = "ROUTINE_TASKS_READY_2024"
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 headerView
                 messagesView
-                HStack{
-                    Spacer()
-                    headerAddTasksButton
-                }.padding()
+                
                 inputView
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(Color.white)
             .navigationBarHidden(true)
             .sheet(isPresented: $viewModel.showTasksSaveDialog) {
                 TaskSaveSheet(
@@ -32,61 +31,107 @@ struct ChatView: View {
         }
     }
     
+    // MARK: - Header View
     private var headerView: some View {
-        VStack {
+        VStack(spacing: 12) {
             HStack {
-                Text("AI Assistant")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack{
+                            Image("appIcon")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 20,height: 20)
+                            
+                            Text("Ridan")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundColor(.primary)
+                        }
+                        Text("Your productivity companion")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
                 Spacer()
                 
                 Button(action: viewModel.clearChat) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red)
-                        .font(.title2)
+                    ZStack {
+                        Circle()
+                            .fill(Color.red.opacity(0.1))
+                            .frame(width: 36, height: 36)
+                        
+                        Image(systemName: "trash.fill")
+                            .foregroundColor(.red)
+                            .font(.system(size: 14, weight: .medium))
+                    }
                 }
                 .disabled(viewModel.messages.isEmpty)
+                .opacity(viewModel.messages.isEmpty ? 0.5 : 1.0)
             }
             .padding(.horizontal, 20)
             .padding(.top, 10)
             
+            // Error message
             if let errorMessage = viewModel.errorMessage {
-                HStack {
+                HStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
+                    
                     Text(errorMessage)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                    
                     Spacer()
-                    Button("Retry") {
+                    
+                    Button("Retry"){
                         viewModel.retryLastMessage()
                     }
-                    .font(.caption)
-                    .foregroundColor(.blue)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue)
+                    .clipShape(Capsule())
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 8)
+                .padding(.vertical, 10)
+                .background(Color.orange.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 20)
             }
+            
+            // Instructions for AI (hidden from user)
+            Text("**Instructions for AI Assistant:**\n\nWhen you provide actual task lists, routines, or schedules that users can save to their calendar (not just explanations or tips), please include this exact key at the end of your response: `\(viewModel.getTaskKey())`\n\nThis helps the app identify when tasks are ready to be saved to the user's schedule. Only include this key when you're providing structured, actionable tasks or routines.")
+                       .font(.caption2)
+                       .foregroundColor(.clear)
+                       .frame(height: 0)
+                       .opacity(0)
         }
     }
     
     private var messagesView: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 12) {
+                LazyVStack(spacing: 16) {
                     if viewModel.messages.filter({ $0.role != .system }).isEmpty {
                         emptyStateView
                     }
                     
-                    ForEach(viewModel.messages.filter({ $0.role != .system }),id: \.id) { message in
-                        VStack(alignment: .leading, spacing: 8) {
-                            MessageBubble(message: message)
-                                .id(message.id)
+                    ForEach(viewModel.messages.filter({ $0.role != .system }), id: \.id) { message in
+                        VStack(alignment: .leading, spacing: 12) {
+                            // Use ViewModel methods for task key detection and content cleaning
+                            MessageBubble(
+                                message: message,
+                                taskKey: viewModel.getTaskKey(),
+                                cleanContent: viewModel.cleanMessageContent(message.content)
+                            )
+                            .id(message.id)
                             
-                            // Show "Save to Tasks" button for assistant messages with parsed tasks
+                            // Only show Add Tasks button when the unique key is found
                             if message.role == .assistant &&
                                message.id == viewModel.messages.last?.id &&
+                               viewModel.containsTaskKey(message.content) &&
                                !viewModel.parsedTasks.isEmpty {
                                 saveToTasksButton
                             }
@@ -97,11 +142,11 @@ struct ChatView: View {
                         typingIndicator
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
             }
             .onReceive(viewModel.$messages) { _ in
-                withAnimation(.easeOut(duration: 0.3)) {
+                withAnimation(.easeOut(duration: 0.5)) {
                     if let lastMessage = viewModel.messages.last {
                         proxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
@@ -109,71 +154,122 @@ struct ChatView: View {
             }
         }
     }
+
+    // MARK: - Task Key Detection
+    private func containsTaskKey(_ content: String) -> Bool {
+        return content.contains(TASK_KEY)
+    }
     
-    // MARK: - Updated Chat View with Smart Add Tasks Button
-     var saveToTasksButton: some View {
+    // MARK: - Add Tasks Button
+    private var saveToTasksButton: some View {
         HStack {
             Spacer()
             
-            // Show button only when we have a complete planner
-            if viewModel.showAddTasksButton {
-                Button(action: {
-                    viewModel.showTasksSaveDialog = true
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add \(viewModel.parsedTasks.count) Tasks to Schedule")
-                            .fontWeight(.medium)
+            Button(action: {
+                viewModel.showTasksSaveDialog = true
+            }) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 26, height: 26)
+                        
+                        Image(systemName: "plus")
+                            .foregroundColor(.white)
+                            .font(.system(size: 12, weight: .bold))
                     }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        LinearGradient(
-                            gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Add to Schedule")
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        Text("\(viewModel.parsedTasks.count) tasks ready")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    
+                    Image(systemName: "arrow.right")
+                        .foregroundColor(.white)
+                        .font(.system(size: 10, weight: .bold))
                 }
-                .shadow(color: .blue.opacity(0.3), radius: 6, x: 0, y: 3)
-                .scaleEffect(1.02)
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.showAddTasksButton)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 14)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.blue,
+                            Color.purple.opacity(0.8)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 22))
+                .shadow(color: .blue.opacity(0.4), radius: 8, x: 0, y: 4)
+            }
+            .scaleEffect(1.0)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.parsedTasks.count)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+    }
+    
+    // MARK: - Empty State
+    private var emptyStateView: some View {
+        VStack(spacing: 30) {
+            Spacer()
+            VStack(spacing: 12) {
+                Text("How can I help,Hariom?")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Text("I can help in your routines and planners")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+            }
+            
+            VStack(spacing: 12) {
+                suggestionChip(text: "Create a morning routine", icon: "sunrise.fill")
+                suggestionChip(text: "Plan my workout schedule", icon: "figure.run")
+                suggestionChip(text: " Organize my study plan ", icon: "book.fill")
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
+        .padding(.top, 40)
     }
     
-    private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 60))
-                .foregroundColor(.secondary.opacity(0.6))
-            
-            Text("What new goal do you want to achieve today?")
-                .font(.title2)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-            
-            Text("I can help you break it into microtasks, set daily routines, and accomplish them everyday with simple nudges.")
-                .font(.subheadline)
-                .foregroundColor(.secondary.opacity(0.8))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+    private func suggestionChip(text: String, icon: String) -> some View {
+        Button(action: {
+            viewModel.currentInput = text
+            viewModel.sendMessage()
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                
+                Text(text)
+                    .font(.subheadline)
+            }
+            .foregroundColor(.indigo)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color.blue.opacity(0.1))
+            .clipShape(Capsule())
         }
-        .padding(.top, 60)
     }
     
+    // MARK: - Typing Indicator
     private var typingIndicator: some View {
         HStack {
-            HStack(spacing: 4) {
-                ForEach(0..<3) { index in
+            HStack(spacing: 6) {
+                ForEach(0..<3, id: \.self) { index in
                     Circle()
-                        .fill(Color.secondary.opacity(0.6))
-                        .frame(width: 8, height: 8)
-                        .scaleEffect(viewModel.isLoading ? 1.0 : 0.5)
+                        .fill(Color.blue.opacity(0.7))
+                        .frame(width: 6, height: 6)
+                        .scaleEffect(viewModel.isLoading ? 1.2 : 0.8)
                         .animation(
                             Animation.easeInOut(duration: 0.6)
                                 .repeatForever()
@@ -184,256 +280,75 @@ struct ChatView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color(.systemGray5))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .background(Color(.systemGray6))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
             
             Spacer()
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
     }
     
+    // MARK: - Input View
     private var inputView: some View {
-        HStack(spacing: 12) {
-            TextField("Ask for routines, schedules, or tasks...", text: $viewModel.currentInput, axis: .vertical)
-                .textFieldStyle(PlainTextFieldStyle())
-                .font(.system(size: 16))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 24))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(Color(.systemGray4), lineWidth: 1)
-                )
-                .lineLimit(1...4)
-            
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    viewModel.sendMessage()
-                }
-            }) {
-                Image(systemName: viewModel.isLoading ? "stop.circle.fill" : "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(canSend ? .blue : .secondary)
-                    .background(Color(.systemBackground))
-                    .clipShape(Circle())
-            }
-            .disabled(!canSend && !viewModel.isLoading)
-            .scaleEffect(canSend || viewModel.isLoading ? 1.0 : 0.8)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: canSend)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color(UIColor.systemGroupedBackground))
-    }
-    // MARK: - Alternative: Header Button for Manual Add
-     var headerAddTasksButton: some View {
-        Button(action: {
-            viewModel.showAddTasksManually()
-        }) {
-            Image(systemName: "plus.square.on.square")
-                .foregroundColor(.blue)
-                .font(.title2)
-        }
-        .disabled(viewModel.messages.isEmpty)
-        .opacity(viewModel.messages.isEmpty ? 0.5 : 1.0)
-    }
-    
-    private var canSend: Bool {
-        !viewModel.currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !viewModel.isLoading
-    }
-}
-
-// MARK: - Task Save Sheet
-struct TaskSaveSheet: View {
-    let tasks: [ParsedTask]
-    let onSave: ([ParsedTask]) -> Void
-    let onCancel: () -> Void
-    
-    @State private var selectedTasks: Set<UUID> = []
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 16) {
-                Text("Save Tasks to Your Todo List")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .padding(.top)
-                
-                Text("Select the tasks you want to add:")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                List {
-                    ForEach(tasks) { task in
-                        TaskSelectionRow(
-                            task: task,
-                            isSelected: selectedTasks.contains(task.id)
-                        ) { isSelected in
-                            if isSelected {
-                                selectedTasks.insert(task.id)
-                            } else {
-                                selectedTasks.remove(task.id)
-                            }
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    TextField("Ask for routines, schedules, or planning help...", text: $viewModel.currentInput, axis: .vertical)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .font(.system(size: 16))
+                        .lineLimit(1...4)
+                        .onSubmit {
+                            viewModel.sendMessage()
+                        }
+                    
+                    if !viewModel.currentInput.isEmpty {
+                        Button(action: {
+                            viewModel.currentInput = ""
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.indigo)
+                                .font(.system(size: 16))
                         }
                     }
                 }
-                
-                HStack(spacing: 16) {
-                    Button("Cancel") {
-                        onCancel()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color(.systemGray5))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    
-                    Button("Save \(selectedTasks.count) Tasks") {
-                        let tasksToSave = tasks.filter { selectedTasks.contains($0.id) }
-                        onSave(tasksToSave)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(selectedTasks.isEmpty ? Color(.systemGray5) : Color.blue)
-                    .foregroundColor(selectedTasks.isEmpty ? .secondary : .white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .disabled(selectedTasks.isEmpty)
-                }
-                .padding(.horizontal)
-                .padding(.bottom)
-            }
-        }
-        .onAppear {
-            // Select all tasks by default
-            selectedTasks = Set(tasks.map { $0.id })
-        }
-    }
-}
-
-// MARK: - Task Selection Row
-struct TaskSelectionRow: View {
-    let task: ParsedTask
-    let isSelected: Bool
-    let onToggle: (Bool) -> Void
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Button(action: {
-                onToggle(!isSelected)
-            }) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? .blue : .secondary)
-                    .font(.title2)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.name)
-                    .font(.headline)
-                    .multilineTextAlignment(.leading)
-                
-                HStack {
-                    Text("\(task.duration) min")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.2))
-                        .clipShape(Capsule())
-                    
-                    Text(formatDate(task.suggestedDate))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onToggle(!isSelected)
-        }
-    }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        return formatter.string(from: date)
-    }
-}
-
-// MARK: - Message Bubble (same as before)
-struct MessageBubble: View {
-    let message: Mesaage
-    
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            if message.role == .assistant {
-                assistantBubble
-                Spacer(minLength: 60)
-            } else {
-                Spacer(minLength: 60)
-                userBubble
-            }
-        }
-        .transition(.asymmetric(
-            insertion: .move(edge: .bottom).combined(with: .opacity),
-            removal: .opacity
-        ))
-    }
-    
-    private var assistantBubble: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(message.content)
-                .font(.system(size: 16))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(Color(.systemGray6))
-                .foregroundColor(.primary)
-                .clipShape(BubbleShape(isFromCurrentUser: false))
-            
-            Text(formatTime(message.createdAt))
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .padding(.leading, 4)
+                .background(Color(.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 22))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .stroke(canSend ? Color.blue.opacity(0.3) : Color(.systemGray4), lineWidth: 1)
+                )
+                
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        viewModel.sendMessage()
+                        
+                    }
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(canSend ? Color.indigo.opacity(0.2) : Color(.white))
+                            .frame(width: 40, height: 40)
+                            .shadow(color: canSend ? .blue.opacity(0.3) : .clear, radius: 4, x: 0, y: 2)
+                        
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.indigo)
+                    }
+                }
+                .disabled(!canSend)
+                .scaleEffect(canSend ? 1.0 : 0.8)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: canSend)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(.systemBackground))
         }
-    }
-    
-    private var userBubble: some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            Text(message.content)
-                .font(.system(size: 16))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .clipShape(BubbleShape(isFromCurrentUser: true))
-            
-            Text(formatTime(message.createdAt))
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .padding(.trailing, 4)
-        }
-    }
-    
-    private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-}
-
-// MARK: - Custom Bubble Shape
-struct BubbleShape: Shape {
-    let isFromCurrentUser: Bool
-    
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(
-            roundedRect: rect,
-            byRoundingCorners: isFromCurrentUser
-                ? [.topLeft, .topRight, .bottomLeft]
-                : [.topLeft, .topRight, .bottomRight],
-            cornerRadii: CGSize(width: 18, height: 18)
-        )
-        return Path(path.cgPath)
+    }  
+    private var canSend: Bool {
+        !viewModel.currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !viewModel.isLoading
     }
 }
 
