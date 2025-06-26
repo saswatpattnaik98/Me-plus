@@ -1,18 +1,11 @@
-//
-//  MessageBubble.swift
-//  Me+
-//
-//  Created by Hari's Mac on 25.06.2025.
-//
-
 import SwiftUI
 
 // MARK: - Message Bubble
 struct MessageBubble: View {
     let message: Mesaage
     let taskKey: String
-    let cleanContent: String // Add this parameter
-    
+    let cleanContent: String
+
     var body: some View {
         HStack(alignment: .bottom, spacing: 12) {
             if message.role == .assistant {
@@ -28,22 +21,21 @@ struct MessageBubble: View {
             removal: .opacity
         ))
     }
-    
+
     private var assistantBubble: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top, spacing: 12) {
-                    Image("appIcon")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 12,height: 12)
-                
+                Image("appIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 12, height: 12)
+
                 VStack(alignment: .leading, spacing: 4) {
-                    // Use the cleaned content instead of raw message content
-                    Text(cleanContent)
+                    // ✅ Replaced Text(...) with TextWithLinks to support clickable URLs
+                    TextWithLinks(text: cleanContent)
                         .font(.system(size: 16))
                         .foregroundColor(.primary)
-                        .textSelection(.enabled)
-                    
+
                     Text(formatTime(message.createdAt))
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -56,7 +48,7 @@ struct MessageBubble: View {
             }
         }
     }
-    
+
     private var userBubble: some View {
         VStack(alignment: .trailing, spacing: 6) {
             HStack(alignment: .top, spacing: 12) {
@@ -65,7 +57,7 @@ struct MessageBubble: View {
                         .font(.system(size: 16))
                         .foregroundColor(.white)
                         .textSelection(.enabled)
-                    
+
                     Text(formatTime(message.createdAt))
                         .font(.caption2)
                         .foregroundColor(.white.opacity(0.8))
@@ -81,7 +73,7 @@ struct MessageBubble: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: .blue.opacity(0.3), radius: 4, x: 0, y: 2)
-                
+
                 Circle()
                     .fill(Color(.systemGray4))
                     .frame(width: 28, height: 28)
@@ -93,12 +85,7 @@ struct MessageBubble: View {
             }
         }
     }
-    
-    // Remove the task key from the displayed message content
-    private func cleanMessageContent(_ content: String) -> String {
-        return content.replacingOccurrences(of: taskKey, with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    
+
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
