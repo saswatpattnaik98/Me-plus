@@ -13,8 +13,9 @@ struct EditHabitView: View {
         NavigationStack {
             ZStack {
                 // Beautiful gradient background
-                EditTaskBG()
-    
+                //EditTaskBG()
+                Color.black
+                    .ignoresSafeArea()
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 24) {
                         // Header with cute icon
@@ -45,34 +46,6 @@ struct EditHabitView: View {
     // MARK: - Header Section
     private var headerSection: some View {
         VStack(spacing: 12) {
-            // Cute task icon
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.mint.opacity(0.3), Color.cyan.opacity(0.2)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.mint.opacity(0.5), lineWidth: 2)
-                    )
-                
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 32, weight: .semibold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.mint, .cyan],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-            .shadow(color: .mint.opacity(0.3), radius: 10, x: 0, y: 5)
-            
             Text("Let's make this task perfect! ✨")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -134,7 +107,6 @@ struct EditHabitView: View {
     // MARK: - ID-based Subtask Row (Recommended Approach)
     private func subtaskRowById(subtask: Subtask) -> some View {
         HStack(spacing: 12) {
-            iconContainer(systemName: "minus.circle", color: .mint, size: 20)
             
             TextField("Subtask", text: Binding(
                 get: {
@@ -150,7 +122,7 @@ struct EditHabitView: View {
             .textFieldStyle(.plain)
             .font(.body)
             
-            if viewModel.subtasks.count > 1 {
+            if viewModel.subtasks.count >= 1 {
                 Button(role: .destructive) {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         viewModel.removeSubtask(subtask)
@@ -234,7 +206,7 @@ struct EditHabitView: View {
     
     private var reminderTypeRow: some View {
         HStack(spacing: 8) {
-            iconContainer(systemName: "bell", color: .orange)
+            iconContainer(systemName: "bell", color: .indigo)
             
             Text("Reminder")
                 .font(.subheadline)
@@ -242,7 +214,7 @@ struct EditHabitView: View {
             
             Spacer()
             
-            Picker("Reminder Type", selection: $viewModel.reminderType) {
+            Picker("", selection: $viewModel.reminderType) {
                 ForEach(viewModel.ReminderType, id: \.self) { type in
                     Text(type).tag(type)
                 }
@@ -256,7 +228,7 @@ struct EditHabitView: View {
     
     private var timePickerRow: some View {
         HStack(spacing: 12) {
-            iconContainer(systemName: "clock", color: .blue)
+            iconContainer(systemName: "clock", color: .indigo)
             
             Text("Time")
                 .font(.subheadline)
@@ -302,7 +274,7 @@ struct EditHabitView: View {
     
     private var repeatPickerRow: some View {
         HStack(spacing: 12) {
-            iconContainer(systemName: "repeat", color: .purple)
+            iconContainer(systemName: "repeat", color: .indigo)
             
             Text("Repeat")
                 .font(.subheadline)
@@ -324,7 +296,7 @@ struct EditHabitView: View {
     
     private func subtaskRow(at index: Int) -> some View {
         HStack(spacing: 12) {
-            iconContainer(systemName: "minus.circle", color: .mint, size: 20)
+           // iconContainer(systemName: "minus.circle", color: .mint, size: 20)
             
             TextField("Subtask", text: Binding(
                 get: { viewModel.subtasks[index].name },
@@ -349,7 +321,6 @@ struct EditHabitView: View {
     
     private var addSubtaskRow: some View {
         HStack(spacing: 12) {
-            iconContainer(systemName: "plus.circle", color: .green, size: 20)
             
             TextField("Add new subtask", text: $viewModel.subtaskName)
                 .textFieldStyle(.plain)
@@ -365,7 +336,7 @@ struct EditHabitView: View {
             }) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 18))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(.indigo)
             }
             .disabled(viewModel.subtaskName.isEmpty)
             .opacity(viewModel.subtaskName.isEmpty ? 0.5 : 1.0)
@@ -374,7 +345,7 @@ struct EditHabitView: View {
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(style: StrokeStyle(lineWidth: 2, dash: [5, 5]))
-                .foregroundStyle(.mint.opacity(0.5))
+                .foregroundStyle(.indigo.opacity(0.5))
         )
     }
     
@@ -389,7 +360,7 @@ struct EditHabitView: View {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.title3)
-                    .foregroundStyle(.mint)
+                    .foregroundStyle(.indigo)
                 
                 Text(title)
                     .font(.headline)
@@ -403,11 +374,6 @@ struct EditHabitView: View {
             content()
         }
         .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
-        )
     }
     
     private func customTextField(
@@ -417,7 +383,7 @@ struct EditHabitView: View {
         placeholder: String
     ) -> some View {
         HStack(spacing: 12) {
-            iconContainer(systemName: icon, color: .mint)
+            iconContainer(systemName: icon, color: .indigo)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
@@ -440,22 +406,23 @@ struct EditHabitView: View {
         hasChevron: Bool = false
     ) -> some View {
         HStack(spacing: 12) {
-            iconContainer(systemName: icon, color: .mint)
+            iconContainer(systemName: icon, color: .indigo)
             
             Text(title)
                 .font(.subheadline)
+                .foregroundStyle(.white)
                 .fontWeight(.medium)
             
             Spacer()
             
             Text(value)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white)
             
             if hasChevron {
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.white)
             }
         }
         .padding(16)
@@ -488,8 +455,6 @@ struct EditHabitView: View {
             }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 16, weight: .semibold))
                 Text("Save")
                     .fontWeight(.semibold)
             }
@@ -498,7 +463,7 @@ struct EditHabitView: View {
             .padding(.vertical, 8)
             .background(
                 LinearGradient(
-                    colors: [.mint, .cyan],
+                    colors: [.indigo, .indigo.opacity(0.8)],
                     startPoint: .leading,
                     endPoint: .trailing
                 ),
@@ -512,4 +477,6 @@ struct EditHabitView: View {
 #Preview {
     EditHabitView(viewModel: EditHabitViewModel(activity: Activity(name: "Preview", date: Date.now, duration: 0)))
         .environmentObject(AlarmManager.shared)
+        .preferredColorScheme(.dark)
 }
+

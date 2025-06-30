@@ -13,12 +13,10 @@ struct ActivityNameView: View {
     
     var body: some View {
         Text(activity.name)
-            .font(.system(size: 16, weight: .semibold, design: .rounded))
+            .font(.system(size: 16, weight: .medium))
             .foregroundColor(activity.isCompleted ? .secondary : .primary)
             .strikethrough(activity.isCompleted, pattern: .solid, color: .secondary)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
-            .scaleEffect(isAnimatingCompletion ? 1.05 : 1.0)
-            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isAnimatingCompletion)
     }
 }

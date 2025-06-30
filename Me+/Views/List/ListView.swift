@@ -71,19 +71,19 @@ struct ListView: View {
     private var adaptiveBottomPadding: CGFloat {
         if keyboardHeight > 0 {
             // When keyboard is shown, position just above keyboard with some spacing
-            return keyboardHeight + 16
+            return 10
         } else {
             // When keyboard is hidden, use safe area + some padding
-            return max(safeAreaBottom + 25, 60)
+            return max(safeAreaBottom + 2, 40)
         }
     }
     
     // Computed property for list bottom padding
     private var listBottomPadding: CGFloat {
         if keyboardHeight > 0 {
-            return keyboardHeight + 80 // Extra space for the text field
+            return  10 // Extra space for the text field
         } else {
-            return max(safeAreaBottom + 85, 120) // Adaptive to safe area
+            return max(safeAreaBottom + 1, 10) // Adaptive to safe area
         }
     }
     
@@ -178,30 +178,11 @@ struct ListView: View {
                     // Improved positioning for different screen sizes
                     VStack {
                         Spacer()
-                        HStack{
-                            Spacer()
-                            Button{
-                                showChatBot.toggle()
-                            }label: {
-                                ZStack{
-                                    Circle()
-                                        .fill(Color.indigo.opacity(0.2))
-                                        .frame(width: 45, height: 45)
-                                        .shadow(color: .indigo.opacity(0.3) , radius: 4, x: 0, y: 2)
-                                    
-                                    Image("appIcon")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width:20,height: 20)
-                                        .font(.title)
-                                }
-                                
-                            }
-                        }.padding()
                         if selectedDate >= Calendar.current.startOfDay(for: Date()) {
                             AddTaskTextField(
                                 text: $text,
                                 isTextFieldFocused: $isTextFieldFocused,
+                                showChatBot: $showChatBot,
                                 onSubmit: handleAddTask
                             )
                             .padding(.horizontal, 16)

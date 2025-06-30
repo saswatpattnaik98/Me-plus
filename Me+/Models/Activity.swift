@@ -52,21 +52,17 @@ class Activity: ObservableObject {
     }
 
     static func randomColorName() -> String {
-        let colorOptions = ["red", "blue", "green", "purple", "orange", "pink", "indigo", "teal"]
+        let colorOptions = ["indigo"]
         return colorOptions.randomElement() ?? "blue"
     }
 
     var color: Color {
         switch colorName {
-        case "red": return .red
-        case "blue": return .blue
-        case "green": return .green
-        case "purple": return .purple
-        case "orange": return .orange
-        case "pink": return .pink
-        case "indigo": return .indigo
-        case "teal": return .teal
-        default: return .blue
+//        case "blue": return .blue
+//        case "purple": return .purple
+//        case "indigo": return .indigo
+//        case "teal": return .teal
+        default: return .indigo
         }
     }
     

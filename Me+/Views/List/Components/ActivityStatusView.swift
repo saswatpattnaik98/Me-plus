@@ -39,24 +39,29 @@ struct ActivityStatusView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(activity.subtasks.count) subtasks" + (activity.isRepeating ? " • Repeating" : ""))
                         .font(.system(size: 7))
+                        .foregroundStyle(.gray)
                     Text("Scheduled: \(activity.reminderTime.displayTime)")
                         .font(.system(size: 7))
+                        .foregroundStyle(.gray)
                 }
             }
             // Check if task has only reminder time (no subtasks)
             else if activity.reminderType != "No reminder" {
                 Text("Scheduled: \(activity.reminderTime.displayTime)")
                     .font(.system(size: 9))
+                    .foregroundStyle(.gray)
             }
             // Check if task has only subtasks (no reminder time)
             else if !activity.subtasks.isEmpty {
                 Text("\(activity.subtasks.count) subtasks" + (activity.isRepeating ? " • Repeating" : ""))
                     .font(.system(size: 9))
+                    .foregroundStyle(.gray)
             }
             // No time and no subtasks - show "Anytime"
             else {
                 Text("Anytime")
                     .font(.system(size: 9))
+                    .foregroundStyle(.gray)
                     .strikethrough(activity.isCompleted, pattern: .solid, color: .black)
             }
         }

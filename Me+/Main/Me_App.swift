@@ -33,7 +33,7 @@ struct Me_App: App {
                 }
                 .ignoresSafeArea()
                 .environmentObject(alarmManager)
-                .preferredColorScheme(.light)
+                .preferredColorScheme(.dark)
         }
         .modelContainer(for: [Activity.self])
     }

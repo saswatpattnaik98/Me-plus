@@ -22,7 +22,7 @@ struct ActivityRowView: View {
     
     var body: some View {
         HStack {
-            ActivityIconView(activity: activity, isNewTask: isNewTask)
+           // ActivityIconView(activity: activity, isNewTask: isNewTask)
             
             VStack(alignment: .leading) {
                 ActivityStatusView(activity: activity, isAnimatingCompletion: isAnimatingCompletion)
@@ -41,31 +41,15 @@ struct ActivityRowView: View {
         .padding(EdgeInsets(top: 25, leading: 25, bottom: 25, trailing: 15))
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(activity.color.opacity(0.2))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(isNewTask ? 0.3 : 0),
-                                    Color.white.opacity(isNewTask ? 0.1 : 0),
-                                    Color.white.opacity(isNewTask ? 0.3 : 0)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                )
+                .fill(Color.gray.opacity(0.1))
+                .animation(.easeOut(duration: 0.1), value: activity.color) // Add this
         )
         .foregroundColor(.black)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .contentShape(Rectangle())
         .scaleEffect(isPressed ? 0.95 : 1.0)
         .opacity(isPressed ? 0.8 : 1.0)
-        .transition(.asymmetric(
-            insertion: .move(edge: .trailing).combined(with: .opacity),
-            removal: .move(edge: .leading).combined(with: .opacity)
-        ))
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
         .onTapGesture {
             if selectedDate >= Calendar.current.startOfDay(for: Date()) {
                 onTap()
@@ -74,6 +58,14 @@ struct ActivityRowView: View {
                 showMoveTaskAlert = true
             }
         }
+        .overlay(
+            // Left accent bar
+            RoundedRectangle(cornerRadius: 12)
+                .fill(activity.color)
+                .frame(width: 3)
+                .opacity(activity.isCompleted ? 0.3 : 1.0),
+            alignment: .leading
+        )
         .animation(.easeInOut(duration: 0.2), value: isPressed)
         .alert("Move Task to Today?", isPresented: $showMoveTaskAlert) {
             Button("Cancel", role: .cancel) { }

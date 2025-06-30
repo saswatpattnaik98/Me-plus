@@ -71,16 +71,16 @@ struct HomeView: View {
     // Body Property
     var body: some View {
         ZStack(alignment: .top){
-            Color(.systemBackground)
-                .ignoresSafeArea()
+          //  Color(.systemBackground)
+            //    .ignoresSafeArea()
             VStack(spacing: 1) {
                 ZStack(alignment: .top) {
-                    Color.white.opacity(0.2)
+                    Color.black.opacity(0.2)
                         .ignoresSafeArea(edges: .top)
                         .frame(height: 195)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.indigo.opacity(0.2))
+                                .fill(Color.gray.opacity(0.1))
                         )
                     VStack(spacing: 0) {
                         HStack {
@@ -97,7 +97,9 @@ struct HomeView: View {
                                 streakView.toggle()
                             }label: {
                                 HStack {
-                                    Image(systemName: "flame.fill")
+                                    Image("flame")
+                                        .resizable()
+                                        .frame(width: 30,height: 30)
                                         .foregroundStyle(.orange)
                                         .font(.title2)
                                     Text("\(streaknumber)")
@@ -160,13 +162,13 @@ struct HomeView: View {
                                         }
                                     } label: {
                                         Text("Today")
-                                            .foregroundStyle(.black)
+                                            .foregroundStyle(.gray)
                                             .font(.footnote)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 3)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 15)
-                                                    .stroke(Color.black)
+                                                    .stroke(Color.gray)
                                             )
                                     }
                                 } else {
@@ -233,7 +235,7 @@ struct HomeView: View {
                         .padding()
                 }
                 .frame(width: 380)
-                .background(RoundedRectangle(cornerRadius: 20).fill(Color.white))
+                .background(RoundedRectangle(cornerRadius: 20).fill(Color.black))
                 .padding(.top, 60)
                 .offset(y: dragOffset)
                 .gesture(
@@ -470,31 +472,32 @@ struct WeekRowView: View {
                 VStack(spacing: 4) {
                     Text(dayOfWeek(from: date))
                         .font(.caption)
-                        .foregroundColor(isSelected ? .black : .secondary)
+                        .foregroundColor(isSelected ? .white : .secondary)
                         .fontWeight(isSelected ? .bold : .regular)
                     
                     let hasStreak = hasCompletedActivity(date)
                     ZStack {
                         let isToday = Calendar.current.isDateInToday(date)
                         if hasStreak {
-                            Image("streak")
+                            Image("flame")
                                 .resizable()
                                 .frame(width: 36, height: 36)
                         } else {
                             if isToday{
                                 Circle()
-                                    .fill(Color.white)
+                                    .fill(Color.gray.opacity(0.1))
                                     .frame(width: 36, height: 36)
                             } else {
                                 Circle()
-                                    .fill(isSelected ? .white : Color.secondary.opacity(0.1))
+                                    .fill(isSelected ? .gray.opacity(0.1) : Color.secondary.opacity(0.1))
+                                   // .stroke(Color.white)
                                     .frame(width: 36, height: 36)
                             }
                             
                             Text(dayNumber(from: date))
                                 .font(.caption)
                                 .fontWeight(.bold)
-                                .foregroundColor(isSelected ? .black : .gray)
+                                .foregroundColor(isSelected ? .white : .gray)
                         }
                     }
                 }
@@ -506,10 +509,10 @@ struct WeekRowView: View {
                         
                         if isSelected {
                             RoundedRectangle(cornerRadius: 58)
-                                .fill(Color.purple.opacity(0.3))
+                                .fill(Color.indigo.opacity(0.3))
                         } else if isToday {
                             RoundedRectangle(cornerRadius: 58)
-                                .fill(Color.purple.opacity(0.09))
+                                .fill(Color.indigo.opacity(0.09))
                         } else {
                             Color.clear
                         }

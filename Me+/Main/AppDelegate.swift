@@ -6,7 +6,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Enforce light mode for all windows
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
             windowScene.windows.forEach { window in
-                window.overrideUserInterfaceStyle = .light
+                window.overrideUserInterfaceStyle = .dark
             }
         }
         return true

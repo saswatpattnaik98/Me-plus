@@ -1,3 +1,4 @@
+
 import SwiftUI
 
 struct BottomSheetEditView: View {
@@ -19,29 +20,21 @@ struct BottomSheetEditView: View {
         NavigationStack {
             ZStack {
                 // Beautiful gradient background
-                LinearGradient(
-                    colors: [
-                        Color.cyan.opacity(0.15),
-                        Color.mint.opacity(0.1),
-                        Color.white.opacity(0.9)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                Color.black
                 .ignoresSafeArea()
                 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 24) {
                         // Handle bar for bottom sheet feel
                         handleBar
-                        
+                     
                         // Main content
                         VStack(spacing: 20) {
                             headerSection
                             progressSection
                             subtasksSection
                         }
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 15)
                         
                         Spacer(minLength: 100)
                     }
@@ -174,7 +167,7 @@ struct BottomSheetEditView: View {
             HStack {
                 Image(systemName: "chart.bar.fill")
                     .font(.headline)
-                    .foregroundStyle(.mint)
+                    .foregroundStyle(.indigo)
                 
                 Text("Progress")
                     .font(.headline)
@@ -186,7 +179,7 @@ struct BottomSheetEditView: View {
                     Text("\(subtaskCompleted)/\(subtaskCount)")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.indigo)
                 }
             }
             
@@ -201,7 +194,7 @@ struct BottomSheetEditView: View {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(
                                 LinearGradient(
-                                    colors: [.mint, .cyan],
+                                    colors: [.green.opacity(0.4), .green],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
@@ -221,16 +214,11 @@ struct BottomSheetEditView: View {
                     Text("\(Int((Double(subtaskCompleted) / Double(max(subtaskCount, 1))) * 100))%")
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.mint)
+                        .foregroundStyle(.indigo.opacity(0.7))
                 }
             }
         }
         .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
-        )
     }
     
     // MARK: - Fixed Subtasks Section
@@ -239,7 +227,7 @@ struct BottomSheetEditView: View {
             HStack {
                 Image(systemName: "list.bullet.circle.fill")
                     .font(.headline)
-                    .foregroundStyle(.cyan)
+                    .foregroundStyle(.indigo)
                 
                 Text("Subtasks")
                     .font(.headline)
@@ -260,11 +248,6 @@ struct BottomSheetEditView: View {
             }
         }
         .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
-        )
     }
 
     
@@ -303,7 +286,7 @@ struct BottomSheetEditView: View {
                 ZStack {
                     Circle()
                         .fill(task.isCompleted ? Color.green.opacity(0.2) : Color.gray.opacity(0.1))
-                        .frame(width: 32, height: 32)
+                        .frame(width: 25, height: 25)
                         .overlay(
                             Circle()
                                 .stroke(
@@ -314,7 +297,7 @@ struct BottomSheetEditView: View {
                     
                     if task.isCompleted {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(.green)
                     }
                 }
@@ -324,7 +307,7 @@ struct BottomSheetEditView: View {
             
             // Task name
             Text(task.name)
-                .font(.body)
+                .font(.system(size: 16))
                 .fontWeight(.medium)
                 .foregroundStyle(task.isCompleted ? .secondary : .primary)
                 .strikethrough(task.isCompleted)
@@ -341,17 +324,6 @@ struct BottomSheetEditView: View {
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(task.isCompleted ? Color.green.opacity(0.05) : Color.white.opacity(0.7))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(
-                            task.isCompleted ? Color.green.opacity(0.3) : Color.clear,
-                            lineWidth: 1
-                        )
-                )
-        )
     }
 
     
@@ -401,13 +373,13 @@ struct BottomSheetEditView: View {
                 .padding(.vertical, 16)
                 .background(
                     LinearGradient(
-                        colors: [.mint, .cyan],
+                        colors: [.indigo, .indigo.opacity(0.7)],
                         startPoint: .leading,
                         endPoint: .trailing
                     ),
                     in: Capsule()
                 )
-                .shadow(color: .mint.opacity(0.4), radius: 10, x: 0, y: 5)
+                .shadow(color: .indigo.opacity(0.4), radius: 10, x: 0, y: 5)
             }
             .scaleEffect(1.0)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showEditHabit)
@@ -470,4 +442,5 @@ struct BottomSheetEditView: View {
     )
     
     BottomSheetEditView(activity: sampleActivity)
+        .preferredColorScheme(.dark)
 }

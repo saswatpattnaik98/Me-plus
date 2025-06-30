@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+// MARK: - Simplified Completion Button
 struct CompletionButtonView: View {
     let activity: Activity
     let isAnimatingCompletion: Bool
@@ -22,28 +23,27 @@ struct CompletionButtonView: View {
         Button(action: onComplete) {
             ZStack {
                 Circle()
-                    .strokeBorder(activity.isCompleted ? Color.green : Color.gray.opacity(0.3), lineWidth: 2)
-                    .background(Circle().fill(activity.isCompleted ? Color.green.opacity(0.1) : Color.clear))
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Circle()
-                            .fill(activity.isCompleted ? Color.green.opacity(0.3) : Color.clear)
-                            .frame(width: 40, height: 40)
-                            .blur(radius: 8)
-                            .opacity(activity.isCompleted ? 1 : 0)
+                    .strokeBorder(
+                        activity.isCompleted ? activity.color : Color.secondary.opacity(0.4),
+                        lineWidth: 2
                     )
+                    .background(
+                        Circle()
+                            .fill(activity.isCompleted ? activity.color : Color.clear)
+                    )
+                    .frame(width: 20, height: 20)
                 
                 if activity.isCompleted {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.green)
-                        .scaleEffect(isAnimatingCompletion ? 1.5 : 1.0)
-                        .symbolEffect(.bounce.up, value: isAnimatingCompletion)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.white)
+                        .scaleEffect(isAnimatingCompletion ? 1.2 : 1.0)
                 }
             }
         }
         .buttonStyle(.borderless)
         .disabled(!canDo)
-        .opacity(!canDo ? 1.0 : 0.5)
+        .opacity(!canDo ? 0.5 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: activity.isCompleted)
     }
 }

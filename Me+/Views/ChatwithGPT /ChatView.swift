@@ -15,7 +15,6 @@ struct ChatView: View {
                 
                 inputView
             }
-            .background(Color.white)
             .navigationBarHidden(true)
             .sheet(isPresented: $viewModel.showTasksSaveDialog) {
                 TaskSaveSheet(
@@ -47,7 +46,7 @@ struct ChatView: View {
                                 .font(.system(size: 26, weight: .bold, design: .rounded))
                                 .foregroundColor(.primary)
                         }
-                        Text("Your productivity companion")
+                        Text("Your cognitive alignment AI")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -220,12 +219,12 @@ struct ChatView: View {
         VStack(spacing: 30) {
             Spacer()
             VStack(spacing: 12) {
-                Text("How can I help,Hariom?")
+                Text("What's your goal,Hariom?")
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
                 
-                Text("I can help in your routines and planners")
+                Text("I can break them into daily achievable actions")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -233,9 +232,9 @@ struct ChatView: View {
             }
             
             VStack(spacing: 12) {
-                suggestionChip(text: "Create a morning routine", icon: "sunrise.fill")
-                suggestionChip(text: "Plan my workout schedule", icon: "figure.run")
-                suggestionChip(text: " Organize my study plan ", icon: "book.fill")
+                suggestionChip(text: "Study Machine Learning", icon: "sunrise.fill")
+                suggestionChip(text: "Start a youtube channel", icon: "figure.run")
+                suggestionChip(text: "Clear IIT-JEE in 6 months", icon: "book.fill")
             }
         }
         .padding(.top, 40)

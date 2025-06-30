@@ -11,9 +11,9 @@ struct EditTaskBG: View {
     var body: some View {
         LinearGradient(
             colors: [
-                Color.mint.opacity(0.3),
-                Color.cyan.opacity(0.2),
-                Color.white.opacity(0.8)
+                Color.indigo.opacity(0.3),
+                Color.purple.opacity(0.2),
+                Color.black.opacity(0.8)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
